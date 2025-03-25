@@ -1,0 +1,77 @@
+### Étape 1 : Script Immersif
+
+25th September 1994. A chilling Halloween night.
+
+A daring student decided to dress up as Dracula. For a realistic effect, he hid a small wooden plank under his t-shirt and prepared a knife to simulate being pierced by a deadly stake.
+
+However, he underestimated the plank's resistance when he struck it with a hammer. The knife pierced through, ultimately entering his heart.
+
+The student stumbled into the party, exclaimed "I've really done it!" and collapsed in front of horrified friends.
+
+### Étape 2 : 7 Scènes Clés
+
+1. **Preparing the Dracula Costume**  
+   A student carefully crafts his Dracula outfit in a dimly lit room.
+
+2. **Placing the Wooden Plank**  
+   He discreetly positions a thin wooden plank under his t-shirt.
+
+3. **Setting Up the Knife and Hammer**  
+   The student gathers his tools: a knife and a hammer.
+
+4. **Driving the Knife In**  
+   He strikes the knife into the plank with force.
+
+5. **The Knife Pierces the Plank**  
+   The knife tip breaks through the wood, heading towards his heart.
+
+6. **Entering the Party**  
+   Chanceling, he enters the spooky Halloween party.
+
+7. **Collapse and Horror**  
+   He falls before his friends, causing widespread shock.
+
+### Étape 3 : Prompts d'Image
+
+1. **Preparing the Dracula Costume**  
+   Sombre, cinematic room with dark, tattered curtains and cobwebs. An actor sits in front of a creepy mirror, dressing up as Dracula with smoke effects and dim ambiance.
+
+2. **Placing the Wooden Plank**  
+   Creepy, chaotic close-up of a hand placing a wooden plank under a t-shirt with tenebrous lighting.
+
+3. **Setting Up the Knife and Hammer**  
+   Chaotic, cinematic setup featuring a shiny knife and a hammer on a wooden table amidst dark, sombre colors and eerie ambiance.
+
+4. **Driving the Knife In**  
+   Fast-paced, cinematic shot of an actor striking a knife into a plank with a hammer, sparks flying in the air.
+
+5. **The Knife Pierces the Plank**  
+   Slow-motion, creepy scene of a knife tip piercing through wood, hinting at the tragic outcome.
+
+6. **Entering the Party**  
+   Cinematic entrance of a chanceling figure into a dark and sombre Halloween party with chaotic lights and creepy costumes.
+
+7. **Collapse and Horror**  
+   Dramatic, sombre scene of a person falling, surrounded by friends in shock, amidst creepy, cinematic lighting.
+
+### Étape 4 : Texte à Voix (TTS) Reformulé
+
+October 25th, 1994. A fateful Halloween night.
+
+A student decided to [dress up as Dracula]. For a realistic touch, he hid a small wooden plank under his t-shirt and prepared a knife to simulate a deadly stake.
+
+<break time="1.0s" />
+
+He struck the knife with a hammer, but it broke through the wood... and into his heart.
+
+<break time="1.0s" />
+
+Stumbling into the party, he exclaimed [in a triumphant voice], "I've really done it!" before collapsing in front of horrified friends.
+
+<break time="1.0s" />
+
+The room fell silent as the reality of the situation sunk in.
+
+---
+
+Pour les besoins de l'autom
