@@ -1,9 +1,16 @@
 .txt
 .png 
 .jpg
+.mp3
+.mp4
 
-output/*
-!output/.gitkeep
+
+old/
+
+test/
+
+_output/*
+!_output/.gitkeep
 
 key.yml
 

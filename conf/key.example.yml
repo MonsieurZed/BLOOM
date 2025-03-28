@@ -1,0 +1,8 @@
+openai:
+  api_key: key
+
+perplexity:
+  api_key: key
+
+elevenlab:
+  api_key: key
