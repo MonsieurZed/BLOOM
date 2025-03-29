@@ -1,16 +1,54 @@
 from enum import Enum
+import time
 from openai import OpenAI
 from google import genai
 from google.genai import types
 import yaml
-
-from script.basic import Prompt, Utility
+from pathlib import Path
+from script.basic import Utility
 
 
 class Model(Enum):
     OpenAI_o4_Mini = "gpt-4o-mini"
     Perplexity_Sonar = "sonar"
     Gemini_2Flash = "gemini-2.0-flash"
+
+
+class Prompt:
+    class System(Enum):
+        Empty = None
+        Storyteller = "storyteller.txt"
+        Storyboard = "storyboard.txt"
+        SDXL = "sdxl.txt"
+        Sync = "sync.txt"
+
+    class Developper(Enum):
+        Empty = None
+
+    class User(Enum):
+        Empty = None
+
+    _data = {}
+
+    @staticmethod
+    def _load():
+        if len(Prompt._data):
+            return
+
+        for item in Path("prompt").iterdir():
+            if item.is_dir():
+                for file in Path(item).iterdir():
+                    if file.is_file():
+                        with open(file, "r", encoding="utf-8") as item:
+                            Prompt._data[file.name] = item.read()
+
+    @staticmethod
+    def get(key: System):
+        Prompt._load()
+        if key is not None and key.value in Prompt._data:
+            return Prompt._data[key.value]
+        else:
+            return None
 
 
 class LLM:
@@ -44,31 +82,39 @@ class LLM:
         print(f"Model is : {self._model}")
         self._log = log
 
-    def ask(self, user, sys=None, dev=None):
+    def ask(
+        self,
+        prompt: str,
+        user: Prompt.User = Prompt.User.Empty,
+        dev: Prompt.Developper = Prompt.Developper.Empty,
+        sys: Prompt.System = Prompt.System.Empty,
+    ):
+
+        print(f"Asking {self._model.value} for {sys.name} ...", end="")
 
         if self._model is Model.Gemini_2Flash:
-            return self._ask_gemini(user, sys, dev)
+            return self._ask_gemini(prompt=prompt, user=user, dev=dev, sys=sys)
 
         message = []
         if self._model is Model.OpenAI_o4_Mini:
-            if sys:
-                message.append({"role": "system", "content": Prompt.get_sys(sys)})
-            if dev:
-                message.append({"role": "developer", "content": Prompt.get_sys(dev)})
+            if sys is not Prompt.System.Empty:
+                message.append({"role": "system", "content": Prompt.get(sys)})
+            if dev is not Prompt.Developper.Empty:
+                message.append({"role": "developer", "content": Prompt.get(dev)})
 
         if self._model is Model.Perplexity_Sonar:
             if sys or dev:
                 message.append(
                     {
                         "role": "system",
-                        "content": f"{Prompt.get_dev(sys)}\n{Prompt.get_dev(dev)}",
+                        "content": f"{Prompt.get(sys)}\n{Prompt.get(dev)}",
                     }
                 )
 
         message += [
             {
                 "role": "user",
-                "content": user,
+                "content": f"{Prompt.get(user)}\n{prompt.lstrip()}",
             },
         ]
 
@@ -86,18 +132,35 @@ class LLM:
 
         return completion.choices[0].message.content
 
-    def _ask_gemini(self, user, sys=None, dev=None):
+    def _ask_gemini(
+        self,
+        prompt: str,
+        user: Prompt.User = Prompt.User.Empty,
+        dev: Prompt.Developper = Prompt.Developper.Empty,
+        sys: Prompt.System = Prompt.System.Empty,
+    ):
+        timer = time.time()
+        message: str = ""
+        if dev is not Prompt.Developper.Empty:
+            message += f"\n{Prompt.get(dev)}"
+        if user is not Prompt.User.Empty:
+            message += f"\n{Prompt.get(user)}"
 
-        print("Generating script...")
+        message += f"\n{prompt}"
+
+        Utility.save_to_file(self._output_folder, "prompt_" + sys.value, message)
 
         response = self._client.models.generate_content(
             model="gemini-2.0-flash",
             config=types.GenerateContentConfig(
-                system_instruction=Prompt.get_sys(sys),
+                system_instruction=Prompt.get(sys),
             ),
-            contents=f"{dev} Voici la scene :  {user}",
+            contents=message,
         )
 
-        Utility.save_to_file_json(self._output_folder, sys, response.text)
+        Utility.save_to_file_json(
+            self._output_folder, "result_" + sys.value, response.text
+        )
 
+        print(f"{round(time.time() - timer, 2) }sec")
         return response.text

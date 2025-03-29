@@ -1,16 +1,15 @@
 import time
 from script.basic import *
-from script.llm import LLM, Model
+from script.llm import LLM, Model, Prompt
 from script.sdxl import SDXL
 from script.tts import TTS
 
 quantity = 4
 name = "25SEPT94"
-story = """
-On Halloween night, 1994, a student dressed as Dracula with a twist. He placed a pine plank under his T-shirt to create a spooky effect of being stabbed. But things took a fatal turn when he hammered the knife... <break time=\"1.0s\" /> The blade cut through the plank and into his heart. He stumbled into the party, said *<u>\"I really did it\"</u>*, and collapsed before his horrified friends."""
+story = """Paul Stiller et sa femme sont morts à Andover Township, par un bâton de dynamite qui a explosé dans leur voiture : s’ennuyant à bord de leur voiture à deux heures du matin, ils ont voulu allumer un bâton de dynamite et le jeter par la fenêtre pour voir ce que ça faisait, mais apparemment n’ont pas remarqué que les vitres étaient fermées quand ils ont lancé le bâton."""
 
 prompt = """An ominous backroom corridor, enveloped in a harsh yellow glow from flickering fluorescent lights. The walls are stark and uniform, amplifying the sense of isolation and vulnerability in this disorienting space."""
-
+timer = time.time()
 Folder_check()
 
 
@@ -23,34 +22,33 @@ def main():
     Sdxl = SDXL(output_folder)
 
     story = Llm.ask(
-        sys="storyteller",
-        user=story,
+        sys=Prompt.System.Storyteller,
+        prompt=story,
     )
 
     mp3 = Tts.generate_mp3_from_json(story)
-    print(mp3)
     subs = Tts.generate_subs(mp3)
 
     storyboard = Llm.ask(
-        sys="storyboard",
-        user=story,
+        sys=Prompt.System.Storyboard,
+        prompt=story,
     )
 
     prompt = Llm.ask(
-        sys="sdxl",
-        user=f"For each scene make 3 iteration prompt in the style of a dark :\n {storyboard}",
+        sys=Prompt.System.SDXL,
+        prompt=f"For each scene make 3 iteration prompt in the style of a dark :\n {storyboard}",
     )
 
     sync = Llm.ask(
-        sys="sync",
-        user=f"srt={subs}\n\nstoryboard={storyboard}",
+        sys=Prompt.System.Sync,
+        prompt=f"srt={subs}\n\nstoryboard={storyboard}",
     )
 
     Sdxl.generate_from_json(prompt, quantity=1)
 
 
 def short():
-    output_folder = "_output\lastfull"
+    output_folder = "_output\zzz"
     mp3_path = f"{output_folder}/audio.mp3"
     sub_path = f"{output_folder}/audio.srt"
     Sdxl = SDXL(output_folder)
@@ -59,35 +57,58 @@ def short():
     # subs = Tts.generate_subs(mp3_path)
 
     storyboard = Llm.ask(
-        sys="storyboard",
-        user=f"Number of scene needed :{round(Utility.get_duration(mp3_path)/5)}  \n Story : {story}",
+        sys=Prompt.System.Storyboard,
+        #  prompt=f"Number of scene needed :{round(Utility.get_duration(mp3_path)/5)}  \n Story : {story}",
+        prompt=f"Number of scene needed : 5\n Story : {story}",
     )
 
     prompt = Llm.ask(
-        sys="sdxl",
-        user=f"For each scene make 2 iteration prompt in the style of a dark polar :\n {storyboard}",
+        sys=Prompt.System.SDXL,
+        prompt=f"""
+        Style: Photorealistic
+        Mood : Supense
+        Iteration quantity : 1
+        Storyboard : {storyboard}""",
     )
 
-    sync = Llm.ask(
-        sys="sync",
-        user=f"srt={sub_path}\n\nstoryboard={storyboard}",
-    )
+    # sync = Llm.ask(
+    #     sys=Prompt.System.Sync,
+    #     prompt=f"srt={sub_path}\n\nstoryboard={storyboard}",
+    # )
 
-    Sdxl.generate_from_json(prompt, style=SDXL.Style.Realistic, quantity=2)
+    Sdxl.generate_from_json(
+        prompt, style=SDXL.Style.Test, mood=SDXL.Mood.Suspense, quantity=3
+    )
 
 
 def imgen():
     output_folder = "_output\\imgen"
-    Sdxl = SDXL(output_folder)
     llm = LLM(Model.Gemini_2Flash, output_folder, log=True)
+    Sdxl = SDXL(output_folder)
 
     prompt = llm.ask(
-        sys="sdxl",
-        user="3 iterations : Un motard avec une veste en cuir marron, un casque noir et une moto africa twin noir",
+        sys=Prompt.System.SDXL,
+        prompt="1 iterations : Un motard faisant du camping avec une veste en cuir marron, un casque noir et une moto africa twin noir",
     )
 
-    Sdxl.generate_from_json(prompt, quantity=3)
+    Sdxl.generate_from_json(
+        prompt, style=SDXL.Style.Realistic, mood=SDXL.Mood.Suspense, quantity=3
+    )
+
+
+def retry():
+    output_folder = "_output\\imgen"
+    Sdxl = SDXL(output_folder)
+
+    with open("_output\lastfull\sdxl", "r", encoding="utf-8") as file:
+        prompt = file.read()
+    Sdxl.generate_from_json(
+        prompt, style=SDXL.Style.Anime, mood=SDXL.Mood.Horror, quantity=3
+    )
 
 
 # imgen()
 short()
+# retry()
+
+print(f"Total time {round(time.time() - timer, 2)}sec")
