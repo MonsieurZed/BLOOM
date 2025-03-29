@@ -99,16 +99,11 @@ class SDXL:
         style=Style.Anime,
         mood=Mood.Base,
     ):
-        positive = ""
-
-        # Initialize negatif with a default value
+        lora = []
         negatif = "nsfw, fantasy, surreal, unrealistic proportions, split screen, panel, comic, border, extra fingers, fused fingers, bad anatomy, deformed body parts, low quality, lowres, blurry, pixelated, grainy, abstract, distorted details, eerie"
 
-        # Append the provided negative_prompt to negatif
-        # negatif += f", {negative_prompt}"
-
         selection = ["Random Style"]
-        if style is SDXL.Style.Anime:
+        if style is SDXL.Style.Test:
             positive = (
                 positive_prompt
                 + ", Bold outlines, vibrant colors, exaggerated expressions"
@@ -128,14 +123,21 @@ class SDXL:
                     {"enabled": "true", "model_name": "None", "weight": 1},
                 ],
             )
+
         if style is SDXL.Style.Realistic:
-            positive += ", Highly detailed, lifelike textures, realistic lighting, and accurate proportions, mimicking high-end photography"
-            negatif += ", cartoon, anime, CGI, 3D render, painting, illustration"
             model = "juggernautXL_v8Rundiffusion.safetensors"
             selection = ["Fooocus V2", "Fooocus Enhance", "Fooocus Sharp"]
+            lora = (
+                [
+                    {
+                        "enabled": "true",
+                        "model_name": "sd_xl_offset_example-lora_1.0.safetensors",
+                        "weight": 0.1,
+                    }
+                ],
+            )
 
-        if style is SDXL.Style.Test:
-            positive = positive_prompt
+        if style is SDXL.Style.Anime:
             model = "hassakuXLIllustrious_betaV06.safetensors"
             selection = ["MRE Anime", "SAI Anime"]
 
@@ -145,7 +147,7 @@ class SDXL:
         #     positive += ", Tense moments captured with cinematic lighting, expressive body language, and naturalistic settings"
 
         return {
-            "prompt": positive,
+            "prompt": positive_prompt,
             "negative_prompt": Utility.remove_duplicates(negatif),
             "negative_prompt": negatif,
             "style_selections": selection,
@@ -157,7 +159,7 @@ class SDXL:
             "guidance_scale": 6,
             "base_model_name": model,
             "refiner_switch": 0.5,
-            "loras": [],
+            "loras": lora,
             "advanced_params": {
                 "adaptive_cfg": 7,
                 "adm_scaler_end": 0.3,

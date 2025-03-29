@@ -26,7 +26,7 @@ def main():
         prompt=story,
     )
 
-    mp3 = Tts.generate_mp3_from_json(story)
+    mp3 = Tts.generate_mp3(story)
     subs = Tts.generate_subs(mp3)
 
     storyboard = Llm.ask(
@@ -59,15 +59,17 @@ def short():
     storyboard = Llm.ask(
         sys=Prompt.System.Storyboard,
         #  prompt=f"Number of scene needed :{round(Utility.get_duration(mp3_path)/5)}  \n Story : {story}",
-        prompt=f"Number of scene needed : 5\n Story : {story}",
+        prompt=f"""
+        Number of scene needed : 5
+        Story : {story}""",
     )
 
     prompt = Llm.ask(
         sys=Prompt.System.SDXL,
         prompt=f"""
         Style: Photorealistic
-        Mood : Supense
-        Iteration quantity : 1
+        Mood : Suspense
+        Iteration quantity : 3
         Storyboard : {storyboard}""",
     )
 
@@ -77,7 +79,7 @@ def short():
     # )
 
     Sdxl.generate_from_json(
-        prompt, style=SDXL.Style.Test, mood=SDXL.Mood.Suspense, quantity=3
+        prompt, style=SDXL.Style.Anime, mood=SDXL.Mood.Suspense, quantity=2
     )
 
 
