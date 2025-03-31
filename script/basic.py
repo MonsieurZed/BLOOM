@@ -1,6 +1,6 @@
 import os
 import re
-from moviepy import AudioFileClip
+from moviepy.editor import AudioFileClip
 import yaml
 import json
 import pathlib
@@ -41,7 +41,7 @@ class Utility:
     @staticmethod
     def json_from_str(string: str):
         try:
-            return json.loads(re.search(r"\{[\s\S]*\}", string).group())
+            return json.loads(string)
         except json.JSONDecodeError as e:
             print(f"Error: {e}")
             return None
@@ -57,7 +57,7 @@ class Utility:
     def save_to_file(folder, filename, text):
         Utility.make_folder(folder)
         try:
-            with open(f"{folder}\{filename}", "w") as file:
+            with open(f"{folder}\{filename}", "w", encoding="utf-8") as file:
                 file.write(text)
         except Exception as e:
             print(f"Error saving text: {e}")
@@ -69,8 +69,7 @@ class Utility:
                 folder, filename, re.search(r"\{[\s\S]*\}", text).group()
             )
         except Exception as e:
-            print(f"Error saving {folder}\{filename}: {e}\n{text}")
-            sys.exit(1)
+            Utility.save_to_file(folder, filename, text)
 
     @staticmethod
     def get_duration(path_mp3):
@@ -85,3 +84,11 @@ class Utility:
         items = [item.strip() for item in input_string.split(",")]
         unique_items = list(dict.fromkeys(items))
         return ", ".join(unique_items)
+
+    @staticmethod
+    def get_scene(folder: str, scene: str) -> str:
+        folder_path = pathlib.Path(folder)
+        for file in folder_path.iterdir():
+            if file.is_file() and f"S{int(scene):02}" in file.name:
+                return str(file)
+        return None

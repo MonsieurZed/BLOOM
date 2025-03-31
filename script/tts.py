@@ -1,3 +1,4 @@
+import time
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
 from script.basic import Key
@@ -10,7 +11,7 @@ from moviepy.audio.io.AudioFileClip import AudioFileClip  # Import for MP3 durat
 from whisper.utils import get_writer
 
 
-class TTS:
+class TTSGen:
     _client: ElevenLabs
     _output: str
 
@@ -18,8 +19,12 @@ class TTS:
         self._client = ElevenLabs(api_key=Key.get("elevenlabs"))
         self._output = output
 
-    def generate_mp3(self, text, output_audio_file):
+    def generate_mp3(self, text):
+        timer = time.time()
+        print("Generating MP3 ...", end="")
         load_dotenv()
+        output_audio_file = f"{self._output}/audio.mp3"
+
         audio = self._client.text_to_speech.convert(
             text=text,
             voice_id="TxGEqnHWrfWFTfGW9XjX",
@@ -33,9 +38,15 @@ class TTS:
             ) in audio:  # Iterate over the generator and write chunks to the file
                 f.write(chunk)
 
+        print(f"{round(time.time() - timer, 2)} seconds.")
+        return output_audio_file
+
     def generate_subs(self, path_mp3):
+        timer = time.time()
+        print("Generating Subs ...", end="")
+
         model = whisper.load_model("base")  # Change this to your desired model
-        print("Whisper model loaded.")
+
         transcribe = model.transcribe(
             audio=path_mp3,
             word_timestamps=True,
@@ -53,20 +64,28 @@ class TTS:
             with open(srtFilename, "a", encoding="utf-8") as srtFile:
                 srtFile.write(segment)
 
-        return srtFilename
+        print(f"{round(time.time() - timer, 2)} seconds.")
+        return segments
 
-    def generate_str_v2(self, path_mp3):
-        model = whisper.load_model("base")  # Change this to your desired model
-        print("Whisper model loaded.")
+    def generate_srt(self, path_mp3):
+        timer = time.time()
+        print("Generating Subs ...", end="")
+
+        model = whisper.load_model("base")
         result = model.transcribe(
             audio=path_mp3, language="en", word_timestamps=True, task="transcribe"
         )
 
-        # Set VTT Line and words width
         word_options = {
             "highlight_words": False,
             "max_line_count": 1,
-            "max_line_width": 42,
+            "max_line_width": 12,
         }
-        vtt_writer = get_writer(output_format="vtt", output_dir="./")
+
+        vtt_writer = get_writer(output_format="srt", output_dir=self._output)
         vtt_writer(result, path_mp3, word_options)
+
+        print(f"{round(time.time() - timer, 2)} seconds.")
+
+        with open(f"{self._output}\\audio.srt", "r", encoding="utf-8") as file:
+            return file.read()

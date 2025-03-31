@@ -3,6 +3,7 @@
 **Transform your short stories into engaging TikTok videos with minimal effort!**
 
 ## Table of Contents
+
 1. [About the Project](#about-the-project)
 2. [Features](#features)
 
@@ -27,11 +28,16 @@ The **Bloom Project** is a Python-based tool designed to convert short stories i
 ## Technologies Used
 
 The project leverages cutting-edge technologies:
+
 - **Python** for scripting and automation.
 - **Foocus + Foocus API** for AI image generation.
 - **Eleven Labs** models for AI voiceovers.
 - **OpenIA and Google Gemini** models for AI prompting, storyboard.
 
+---
 
+## Running this project
 
-Happy storytelling with Bloom! 🌸
+Run once the setup.cmd (at the root of the project)
+Add you ElevenLabs et Geminy Key in conf/key.yml
+Then run main.py

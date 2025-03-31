@@ -5,12 +5,17 @@
 .mp4
 
 
-_old/
+_old/*
+_gen/*
 
 test/
 
-_output/*
-!_output/.gitkeep
+_output/
+_generative
+
+binary/ffmpeg
+binary/ImageMagick
+data/*
 
 key.yml
 

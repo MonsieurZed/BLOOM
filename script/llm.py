@@ -1,26 +1,33 @@
 from enum import Enum
+import json
 import time
 from openai import OpenAI
 from google import genai
 from google.genai import types
+from sympy import false
 import yaml
 from pathlib import Path
 from script.basic import Utility
+from PIL import Image
+from io import BytesIO
+from datetime import datetime
 
 
 class Model(Enum):
     OpenAI_o4_Mini = "gpt-4o-mini"
     Perplexity_Sonar = "sonar"
     Gemini_2Flash = "gemini-2.0-flash"
+    Gemini_Imagen = "gemini-2.0-flash"
 
 
-class Prompt:
+class PromptLoader:
     class System(Enum):
         Empty = None
-        Storyteller = "storyteller.txt"
-        Storyboard = "storyboard.txt"
-        SDXL = "sdxl.txt"
-        Sync = "sync.txt"
+        Storyteller = "storyteller"
+        Storyboard = "storyboard"
+        SDXL = "sdxl"
+        Sync = "sync"
+        Publish = "publish"
 
     class Developper(Enum):
         Empty = None
@@ -32,7 +39,7 @@ class Prompt:
 
     @staticmethod
     def _load():
-        if len(Prompt._data):
+        if len(PromptLoader._data):
             return
 
         for item in Path("prompt").iterdir():
@@ -40,18 +47,18 @@ class Prompt:
                 for file in Path(item).iterdir():
                     if file.is_file():
                         with open(file, "r", encoding="utf-8") as item:
-                            Prompt._data[file.name] = item.read()
+                            PromptLoader._data[file.stem] = item.read()
 
     @staticmethod
     def get(key: System):
-        Prompt._load()
-        if key is not None and key.value in Prompt._data:
-            return Prompt._data[key.value]
+        PromptLoader._load()
+        if key is not None and key.value in PromptLoader._data:
+            return PromptLoader._data[key.value]
         else:
             return None
 
 
-class LLM:
+class LLMGen:
     _client: object
     _model: str
     _log: bool
@@ -63,6 +70,7 @@ class LLM:
             self.key = yaml.safe_load(file)
         self._model = model
         self._output_folder = output_folder
+        Utility.make_folder(self._output_folder)
 
         if model is Model.OpenAI_o4_Mini:
             self._client = OpenAI(
@@ -85,9 +93,9 @@ class LLM:
     def ask(
         self,
         prompt: str,
-        user: Prompt.User = Prompt.User.Empty,
-        dev: Prompt.Developper = Prompt.Developper.Empty,
-        sys: Prompt.System = Prompt.System.Empty,
+        user: PromptLoader.User = PromptLoader.User.Empty,
+        dev: PromptLoader.Developper = PromptLoader.Developper.Empty,
+        sys: PromptLoader.System = PromptLoader.System.Empty,
     ):
 
         print(f"Asking {self._model.value} for {sys.name} ...", end="")
@@ -97,24 +105,24 @@ class LLM:
 
         message = []
         if self._model is Model.OpenAI_o4_Mini:
-            if sys is not Prompt.System.Empty:
-                message.append({"role": "system", "content": Prompt.get(sys)})
-            if dev is not Prompt.Developper.Empty:
-                message.append({"role": "developer", "content": Prompt.get(dev)})
+            if sys is not PromptLoader.System.Empty:
+                message.append({"role": "system", "content": PromptLoader.get(sys)})
+            if dev is not PromptLoader.Developper.Empty:
+                message.append({"role": "developer", "content": PromptLoader.get(dev)})
 
         if self._model is Model.Perplexity_Sonar:
             if sys or dev:
                 message.append(
                     {
                         "role": "system",
-                        "content": f"{Prompt.get(sys)}\n{Prompt.get(dev)}",
+                        "content": f"{PromptLoader.get(sys)}\n{PromptLoader.get(dev)}",
                     }
                 )
 
         message += [
             {
                 "role": "user",
-                "content": f"{Prompt.get(user)}\n{prompt.lstrip()}",
+                "content": f"{PromptLoader.get(user)}\n{prompt.lstrip()}",
             },
         ]
 
@@ -135,32 +143,89 @@ class LLM:
     def _ask_gemini(
         self,
         prompt: str,
-        user: Prompt.User = Prompt.User.Empty,
-        dev: Prompt.Developper = Prompt.Developper.Empty,
-        sys: Prompt.System = Prompt.System.Empty,
+        user: PromptLoader.User = PromptLoader.User.Empty,
+        dev: PromptLoader.Developper = PromptLoader.Developper.Empty,
+        sys: PromptLoader.System = PromptLoader.System.Empty,
     ):
         timer = time.time()
         message: str = ""
-        if dev is not Prompt.Developper.Empty:
-            message += f"\n{Prompt.get(dev)}"
-        if user is not Prompt.User.Empty:
-            message += f"\n{Prompt.get(user)}"
+        if dev is not PromptLoader.Developper.Empty:
+            message += f"\n{PromptLoader.get(dev)}"
+        if user is not PromptLoader.User.Empty:
+            message += f"\n{PromptLoader.get(user)}"
 
         message += f"\n{prompt}"
 
-        Utility.save_to_file(self._output_folder, "prompt_" + sys.value, message)
+        Utility.save_to_file(self._output_folder, sys.value + "_prompt", message)
 
         response = self._client.models.generate_content(
             model="gemini-2.0-flash",
             config=types.GenerateContentConfig(
-                system_instruction=Prompt.get(sys),
+                system_instruction=PromptLoader.get(sys),
             ),
             contents=message,
         )
 
         Utility.save_to_file_json(
-            self._output_folder, "result_" + sys.value, response.text
+            self._output_folder, sys.value + "_result", response.text
         )
 
         print(f"{round(time.time() - timer, 2) }sec")
         return response.text
+
+    def ask_image(self, name=None, select=false, quantity=1):
+        with open(f"{self._output_folder}/sdxl_result", "r", encoding="utf-8") as file:
+            json_obj = json.load(file)
+
+        for prompt in json_obj["prompts"]:
+
+            image_path = Utility.get_scene(self._output_folder, prompt["scene"])
+            if image_path:
+                print(
+                    f"Image S{prompt['scene']} already exist ... Skipping S{prompt['scene']}.{prompt['iteration']}"
+                )
+                continue
+
+            for index in range(1, quantity + 1):
+                name = f"S{prompt['scene'].zfill(2)}_{prompt['iteration'].zfill(2)}{index:02}{datetime.now().microsecond:06}.png"
+                try:
+                    print(f"Generating {name}...", end="")
+                    subtimer_start = time.time()
+
+                    response = self._client.models.generate_images(
+                        model="imagen-3.0-generate-002",
+                        prompt=prompt["prompt"],
+                        config=types.GenerateImagesConfig(
+                            number_of_images=1, aspect_ratio="9:16"
+                        ),
+                    )
+
+                    if not response.generated_images:
+                        if response.error:
+                            print(f"Error details: {response.error}")
+                        continue
+
+                    for generated_image in response.generated_images:
+                        image = Image.open(BytesIO(generated_image.image.image_bytes))
+                        image.save(f"{self._output_folder}/{name}")
+
+                    print(f"{round(time.time() - subtimer_start, 2)} seconds.")
+
+                except Exception as e:
+                    print(f"{round(time.time() - subtimer_start, 2)} seconds. Failed")
+                    print(f"{e}\n{prompt['prompt']}\n{e}")
+                    continue
+
+        if select:
+            Utility.make_folder(f"{self._output_folder}/trash")
+            input("Remove unwanted picture and press Enter to continue...")
+            full = True
+            scene_number = json_obj["prompts"][-1]["scene"]
+            for index in range(1, int(scene_number)):
+                file = Utility.get_scene(self._output_folder, index)
+                if file is None:
+                    full = False
+                    break
+
+            if full is False:
+                self.ask_image(name, select, quantity)

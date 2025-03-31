@@ -1,116 +1,98 @@
 import time
 from script.basic import *
-from script.llm import LLM, Model, Prompt
-from script.sdxl import SDXL
-from script.tts import TTS
+from script.llm import LLMGen, Model, PromptLoader
+from _old.sdxl import SDXL
+from script.tts import TTSGen
+from script.video import VideoGen
 
-quantity = 4
-name = "25SEPT94"
-story = """Paul Stiller et sa femme sont morts à Andover Township, par un bâton de dynamite qui a explosé dans leur voiture : s’ennuyant à bord de leur voiture à deux heures du matin, ils ont voulu allumer un bâton de dynamite et le jeter par la fenêtre pour voir ce que ça faisait, mais apparemment n’ont pas remarqué que les vitres étaient fermées quand ils ont lancé le bâton."""
+# json_file_path = r"D:\GIT\BLOOM\BLOOM\_generative\11 Mai 1997_USA, Los Angeles"
+json_file_path = r"D:\GIT\BLOOM\BLOOM\_generative\25 Septembre 1994_Unknown location"
+gen_folder = "_generative"
 
-prompt = """An ominous backroom corridor, enveloped in a harsh yellow glow from flickering fluorescent lights. The walls are stark and uniform, amplifying the sense of isolation and vulnerability in this disorienting space."""
+with open(json_file_path + "\\base.json", "r", encoding="utf-8") as file:
+    base = json.load(file)
+
+date = base.get("date", "Unknown Date")
+place = base.get("place", "Unknown Location")
+story_text = base.get("story", "No Story Provided")
+
+output_folder = f"{gen_folder}\{date.replace(' ', '')}_{place.replace(' ', '')}"
+Utility.make_folder(output_folder)
+
+make_voice = False
+make_sub = False
+make_storyboard = False
+make_sdxl = True
+make_image = True
+select_image = True
+make_background = False
+make_video = False
+make_publish = False
+
+title = f"Darwin Award, {date}, {place}"
+number_of_scene = 7
+image_style = "faded film, desaturated, grainy, vignette, vintage"
+image_mood = "Suspense"
+image_iteration = 2
+
+
+Llm = LLMGen(Model.Gemini_2Flash, output_folder, log=True)
+Tts = TTSGen(output_folder)
+Sdxl = SDXL(output_folder)
+video = VideoGen(output_folder)
+
 timer = time.time()
-Folder_check()
+print(f"Generating {output_folder} ...")
 
-
-#################
-def main():
-    output_folder = f"_output/{time.strftime('%m%d-%H%M')}"
-
-    Llm = LLM(Model.Gemini_2Flash, output_folder, log=True)
-    Tts = TTS(output_folder)
-    Sdxl = SDXL(output_folder)
-
-    story = Llm.ask(
-        sys=Prompt.System.Storyteller,
-        prompt=story,
+if make_voice:
+    storyteller = Llm.ask(
+        sys=PromptLoader.System.Storyteller,
+        prompt=story_text,
     )
 
-    mp3 = Tts.generate_mp3(story)
-    subs = Tts.generate_subs(mp3)
+    mp3 = Tts.generate_mp3(title + " " + storyteller + "<break time='2s'/> BLOOM!'")
+else:
+    mp3 = output_folder + "\\audio.mp3"
 
+if make_sub:
+    subs = Tts.generate_srt(mp3)
+else:
+    with open(f"{output_folder}\\audio.srt", "r", encoding="utf-8") as file:
+        subs = file.read()
+
+if make_storyboard:
     storyboard = Llm.ask(
-        sys=Prompt.System.Storyboard,
-        prompt=story,
+        sys=PromptLoader.System.Storyboard,
+        prompt=f"Number of scene needed : {number_of_scene}\nStory : {base}",
     )
+else:
+    with open(f"{output_folder}\\storyboard_result", "r", encoding="utf-8") as file:
+        storyboard = Utility.json_from_str(file.read())
 
+if make_sdxl:
     prompt = Llm.ask(
-        sys=Prompt.System.SDXL,
-        prompt=f"For each scene make 3 iteration prompt in the style of a dark :\n {storyboard}",
+        sys=PromptLoader.System.SDXL,
+        prompt=f"Style:'{image_style}'\nMood : {image_mood}\nIteration quantity : {image_iteration}\nStoryboard : {storyboard}",
     )
-
+if make_storyboard or make_sub:
     sync = Llm.ask(
-        sys=Prompt.System.Sync,
-        prompt=f"srt={subs}\n\nstoryboard={storyboard}",
+        sys=PromptLoader.System.Sync,
+        prompt=f"Storyboard:\n{storyboard}\n\n\nSubtilte :\n{subs}",
     )
 
-    Sdxl.generate_from_json(prompt, quantity=1)
+if make_image:
+    Llm.ask_image(quantity=1, select=select_image)
 
+if make_background:
+    video.create_background_video()
 
-def short():
-    output_folder = "_output\zzz"
-    mp3_path = f"{output_folder}/audio.mp3"
-    sub_path = f"{output_folder}/audio.srt"
-    Sdxl = SDXL(output_folder)
-    Llm = LLM(Model.Gemini_2Flash, output_folder, log=True)
-    # Tts = TTS(output_folder)
-    # subs = Tts.generate_subs(mp3_path)
+if make_video:
+    video.add_sub_to_video()
 
-    storyboard = Llm.ask(
-        sys=Prompt.System.Storyboard,
-        #  prompt=f"Number of scene needed :{round(Utility.get_duration(mp3_path)/5)}  \n Story : {story}",
-        prompt=f"""
-        Number of scene needed : 5
-        Story : {story}""",
+if make_publish:
+    publish = Llm.ask(
+        sys=PromptLoader.System.Publish,
+        prompt=base,
     )
 
-    prompt = Llm.ask(
-        sys=Prompt.System.SDXL,
-        prompt=f"""
-        Style: Photorealistic
-        Mood : Suspense
-        Iteration quantity : 3
-        Storyboard : {storyboard}""",
-    )
-
-    # sync = Llm.ask(
-    #     sys=Prompt.System.Sync,
-    #     prompt=f"srt={sub_path}\n\nstoryboard={storyboard}",
-    # )
-
-    Sdxl.generate_from_json(
-        prompt, style=SDXL.Style.Anime, mood=SDXL.Mood.Suspense, quantity=2
-    )
-
-
-def imgen():
-    output_folder = "_output\\imgen"
-    llm = LLM(Model.Gemini_2Flash, output_folder, log=True)
-    Sdxl = SDXL(output_folder)
-
-    prompt = llm.ask(
-        sys=Prompt.System.SDXL,
-        prompt="1 iterations : Un motard faisant du camping avec une veste en cuir marron, un casque noir et une moto africa twin noir",
-    )
-
-    Sdxl.generate_from_json(
-        prompt, style=SDXL.Style.Realistic, mood=SDXL.Mood.Suspense, quantity=3
-    )
-
-
-def retry():
-    output_folder = "_output\\imgen"
-    Sdxl = SDXL(output_folder)
-
-    with open("_output\lastfull\sdxl", "r", encoding="utf-8") as file:
-        prompt = file.read()
-    Sdxl.generate_from_json(
-        prompt, style=SDXL.Style.Anime, mood=SDXL.Mood.Horror, quantity=3
-    )
-
-
-# imgen()
-short()
-# retry()
-
-print(f"Total time {round(time.time() - timer, 2)}sec")
+print(f"Finished in {round(time.time() - timer, 2)} seconds.")

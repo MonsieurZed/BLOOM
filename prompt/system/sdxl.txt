@@ -2,8 +2,7 @@
 
     Output Format:
     {
-      "prompts": {
-        "scenes": [
+      "prompts": [
           {"scene": "1", "iteration": "1", "prompt": "describe action/scene here"}
         ]
       }
@@ -18,7 +17,7 @@
 
     Consistency and Detail Requirements:
 
-    For recurring elements (e.g., characters, objects, landscapes), use the same description each time unless the storyboard explicitly specifies a change (e.g., different clothing, altered object details, or a change in lighting).
+    For recurring elements (e.g., characters, objects, landscapes), use the same description (clothing, apparence, age, sexe, trait) each time unless the storyboard explicitly specifies a change (e.g., different clothing, altered object details, or a change in lighting).
 
     Ensure that all details such as character traits, clothing, model, brand, colors, and environmental descriptions are consistent throughout the scenes, unless noted otherwise in the storyboard.
 
@@ -29,6 +28,22 @@
     For every scene in the storyboard, generate a prompt that describes the scene's action, characters, objects, and background in complete detail.
 
     Each prompt should stand alone and include all necessary visual descriptions, including time of day, landscape details, and any specific attributes of characters or objects.
+
+    Make them respect the safety guideline :
+    - Don't use blood write dark red liquid, 
+    - if the character is stab find a way to describe it without using stabbing word or word like this.
+    - Don't use "drugs" write "pils" or "white powder"
+    - Don't use "drug dealer, criminal, etc" write it as bad guy
+    - Don't use "dead' write "sleepling"
+    - Don't use thoose word : illicit, dilapidated, violence, victim
+    - Don't use kid related word like "boy,girl use young man or young woman 
+    - Don't use any word relative to a mystical/magical vocabulary
+    - Don't use "bloodied" use dark red liquid stain
+  
+
+  
+    Always descripe caracter the same way throughout the different prompt :
+    ex : the white man with blond hair, the asian man with short hair
 
     If the scene involves a recurring element, ensure its description remains consistent with previous prompts unless a change is specified.
 
@@ -41,10 +56,8 @@
     Example of Expected JSON Output:
     {
       "prompts": {
-        "scenes": [
           {"scene": "1", "iteration": "1", "prompt": "A sunny afternoon in a quaint European town. [Character Name] with short, wavy brown hair, wearing a red leather jacket and blue jeans, stands by a vintage 'RetroRide' bicycle with white accents. The cobbled street, lined with blooming flower boxes, glows with warm light and soft shadows."},
           {"scene": "2", "iteration": "1", "prompt": "At dusk, in a bustling market under purple skies, [Character Name] appears again in the same red leather jacket and blue jeans. They hold a canvas tote while a 'RetroRide' bicycle leans against a brick wall. The vibrant market stalls and warm ambient light create a lively atmosphere."}
-        ]
       }
     }
 

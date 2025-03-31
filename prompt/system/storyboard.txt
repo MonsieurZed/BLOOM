@@ -5,8 +5,9 @@
       - Identify 3-5 pivotal scenes that visually define the story’s progression.
       - Prioritize:
         • Character introductions
-        • Crucial actions/props
-        • Emotional climaxes
+        • Location
+        • Emotional 
+        • Crucial props
         • Unexpected twists
 
     II. Scene Description Guidelines:
@@ -58,11 +59,11 @@
     {
       "scene": [
         {
-          "scene": "1",
+          "number": "1",
           "description": "<insert storyboard here>"
         },
         {
-          "scene": "2",
+          "number": "2",
           "description": "<insert storyboard here>"
         }
         // ... additional scenes as needed
