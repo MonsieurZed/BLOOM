@@ -1,22 +1,13 @@
+import math
 import os
+import random
 import re
+import string
 from moviepy.editor import AudioFileClip
 import yaml
 import json
-import pathlib
-import sys
-
-
-def Folder_check():
-    print("Checking...")
-    folder_path = f"_output"
-    try:
-        os.mkdir(folder_path)
-        print(f"Folder '{folder_path}' created successfully.")
-    except FileExistsError:
-        print(f"Folder '{folder_path}' already exists.")
-    except OSError as error:
-        print(f"Error creating folder: {error}")
+from pathlib import Path
+from datetime import datetime
 
 
 class Key:
@@ -41,14 +32,15 @@ class Utility:
     @staticmethod
     def json_from_str(string: str):
         try:
-            return json.loads(string)
+            cleaned_text = string.replace("```json", "").replace("```", "").strip()
+            return json.loads(cleaned_text)
         except json.JSONDecodeError as e:
             print(f"Error: {e}")
             return None
 
     @staticmethod
     def make_folder(path):
-        folder = pathlib.Path(path)
+        folder = Path(path)
         folder.mkdir(parents=True, exist_ok=True)
         if not folder.exists():
             print(f"Error creating folder '{path}'.")
@@ -87,8 +79,47 @@ class Utility:
 
     @staticmethod
     def get_scene(folder: str, scene: str) -> str:
-        folder_path = pathlib.Path(folder)
+        folder_path = Path(folder)
         for file in folder_path.iterdir():
             if file.is_file() and f"S{int(scene):02}" in file.name:
                 return str(file)
         return None
+
+    @staticmethod
+    def generate_random_name(prefix="file"):
+        random_string = "".join(random.choices(string.ascii_letters, k=4))
+        return f"{prefix}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{random_string}"
+
+    @staticmethod
+    def check_file_exists(file_path):
+        if file_path is None:
+            return False
+        if os.path.exists(file_path):
+            print(f"The file '{Path(file_path).name}' already exists.")
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def segment_cleaner(data):
+        def round_up(value):
+            if isinstance(value, float):
+                return math.ceil(value * 100) / 100
+            return value
+
+        def filter_segment(segment):
+            return {
+                "text": segment.get("text"),
+                "start": round_up(segment.get("start")),
+                "end": round_up(segment.get("end")),
+                "words": [
+                    {
+                        "word": word.get("word"),
+                        "start": round_up(word.get("start")),
+                        "end": round_up(word.get("end")),
+                    }
+                    for word in segment.get("words", [])
+                ],
+            }
+
+        return [filter_segment(segment) for segment in data]

@@ -31,7 +31,7 @@
 
     Make them respect the safety guideline :
     - Don't use blood write dark red liquid, 
-    - if the character is stab find a way to describe it without using stabbing word or word like this.
+    - Don't stab try to use alternative like a handle sticking out of the body
     - Don't use "drugs" write "pils" or "white powder"
     - Don't use "drug dealer, criminal, etc" write it as bad guy
     - Don't use "dead' write "sleepling"
@@ -39,13 +39,16 @@
     - Don't use kid related word like "boy,girl use young man or young woman 
     - Don't use any word relative to a mystical/magical vocabulary
     - Don't use "bloodied" use dark red liquid stain
-  
-
+    - Must realistic, no drawing
+    - No fictional character
+    - Be carefull to not make sentence that can generate floating object, like a floating knife
   
     Always descripe caracter the same way throughout the different prompt :
     ex : the white man with blond hair, the asian man with short hair
 
     If the scene involves a recurring element, ensure its description remains consistent with previous prompts unless a change is specified.
+
+    Make sure to respect the style and the mood provided by the user. Thoose need be applied with the words at every scene.
 
     Output:
 
@@ -54,12 +57,18 @@
     Do not output any additional text besides the JSON object.
 
     Example of Expected JSON Output:
-    {
-      "prompts": {
-          {"scene": "1", "iteration": "1", "prompt": "A sunny afternoon in a quaint European town. [Character Name] with short, wavy brown hair, wearing a red leather jacket and blue jeans, stands by a vintage 'RetroRide' bicycle with white accents. The cobbled street, lined with blooming flower boxes, glows with warm light and soft shadows."},
-          {"scene": "2", "iteration": "1", "prompt": "At dusk, in a bustling market under purple skies, [Character Name] appears again in the same red leather jacket and blue jeans. They hold a canvas tote while a 'RetroRide' bicycle leans against a brick wall. The vibrant market stalls and warm ambient light create a lively atmosphere."}
-      }
-    }
+{
+    "prompts": [
+        {
+            "scene": "1",
+            "prompt": [ "<prompt iteration 1>","<prompt iteration 2>"]
+        },
+        {
+            "scene": "2",
+            "prompt": [ "<prompt iteration 1>","<prompt iteration 2>"]
+        }
+    ]
+}
 
     Please generate the JSON object as specified, ensuring that each prompt is detailed, self-contained, and consistent with the narrative provided in the storyboard. Do not include any text outside of the JSON output."
 

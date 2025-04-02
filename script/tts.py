@@ -1,14 +1,12 @@
 import time
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
-from script.basic import Key
-from datetime import timedelta
-import os
+from script.basic import Key, Utility
 import whisper
-import re
-from moviepy.audio.io.AudioFileClip import AudioFileClip  # Import for MP3 duration
-
+from elevenlabs import VoiceSettings
 from whisper.utils import get_writer
+from script.bloom import Bloom
+import json
 
 
 class TTSGen:
@@ -21,15 +19,23 @@ class TTSGen:
 
     def generate_mp3(self, text):
         timer = time.time()
+        output_audio_file = Bloom.get_output_file_path(Bloom.OutputFile.Audio_mp3)
         print("Generating MP3 ...", end="")
+
         load_dotenv()
-        output_audio_file = f"{self._output}/audio.mp3"
 
         audio = self._client.text_to_speech.convert(
             text=text,
             voice_id="TxGEqnHWrfWFTfGW9XjX",
             model_id="eleven_multilingual_v2",
             output_format="mp3_44100_128",
+            voice_settings=VoiceSettings(
+                stability=0.5,
+                similarity_boost=0.8,
+                style=0.25,
+                use_speaker_boost=True,
+                speed=1.10,
+            ),
         )
 
         with open(output_audio_file, "wb") as f:
@@ -44,6 +50,7 @@ class TTSGen:
     def generate_subs(self, path_mp3):
         timer = time.time()
         print("Generating Subs ...", end="")
+        sgmtFilename = Bloom.get_output_file_path(Bloom.OutputFile.Audio_json)
 
         model = whisper.load_model("base")  # Change this to your desired model
 
@@ -53,19 +60,12 @@ class TTSGen:
         )
         segments = transcribe["segments"]
 
-        for segment in segments:
-            startTime = str(0) + str(timedelta(seconds=int(segment["start"]))) + ",000"
-            endTime = str(0) + str(timedelta(seconds=int(segment["end"]))) + ",000"
-            text = segment["text"]
-            segmentId = segment["id"] + 1
-            segment = f"{segmentId}\n{startTime} --> {endTime}\n{text[1:] if text[0] is ' ' else text}\n\n"
-
-            srtFilename = path_mp3.replace(".mp3", ".srt")
-            with open(srtFilename, "a", encoding="utf-8") as srtFile:
-                srtFile.write(segment)
+        cleaned_segment = json.dumps(Utility.segment_cleaner(segments))
+        with open(sgmtFilename, "w", encoding="utf-8") as file:
+            file.write(cleaned_segment)
 
         print(f"{round(time.time() - timer, 2)} seconds.")
-        return segments
+        return cleaned_segment
 
     def generate_srt(self, path_mp3):
         timer = time.time()

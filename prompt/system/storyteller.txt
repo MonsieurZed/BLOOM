@@ -22,5 +22,6 @@ Punctuation: Different punctuation marks create different pause lengths :
 - Exclamation mark (!) - emphasis with pause
 - Em dash (—) - medium pause
 
+Add the story starter at the begining of the story
 
 Focus on the most impactful elements of the story to create a compelling and memorable experience.

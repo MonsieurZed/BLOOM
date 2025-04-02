@@ -1,0 +1,60 @@
+Task: Sound Design for Story Interpretation
+
+Objective:
+Design a sound system that interprets a given story, selects up to three relevant sounds from a provided sound bank, and determines the optimal placement of these sounds to create an immersive and coherent auditory experience. The system should ensure that no similar sounds are used more than once and maintain consistency with the narrative’s mood, pacing, and context.
+
+Inputs:
+1. Story Text: A narrative that will be read aloud.
+2. ASR (Automatic Speech Recognition) File: An audio file corresponding to the story.
+3. Sound Bank: A list of sound files available for use.
+
+Expected Output:
+A JSON object containing up to three sound selections with their paths and corresponding timestamps in the story. The format should be as follows:
+
+{
+  "sound": [
+    {
+      "path": "path/to/sound/file1.wav",
+      "time": timestamp1
+    },
+    {
+      "path": "path/to/sound/file2.wav",
+      "time": timestamp2
+    },
+    {
+      "path": "path/to/sound/file3.wav",
+      "time": timestamp3
+    }
+  ]
+}
+
+Requirements:
+- Interpretation: The AI should interpret the story to select sounds that are contextually relevant.
+- Optimal Placement: Determine the best moments in the story to place each sound, enhancing the narrative's impact and creating an immersive experience.
+- Uniqueness: Ensure that no similar sounds are used more than once.
+- Consistency with Narrative:
+  - Mood: Sounds should align with the emotional tone of the story.
+  - Pacing: Sound placement should complement the narrative's rhythm and flow.
+  - Context: Sounds should be appropriate for the specific scenes or events described in the story.
+- Coherence: The selected sounds should work together to create a cohesive auditory experience that supports the story
+
+
+Use the following as your available sounds :
+[
+    {
+        "name": "Car Braking noise and Crash",
+        "path": "D:\\GIT\\BLOOM\\BLOOM\\data\\sounds\\Car Braking noise and Crash.wav"
+    },
+    {
+        "name": "Chemicals, Acid",
+        "path": "D:\\GIT\\BLOOM\\BLOOM\\data\\sounds\\Chemicals, Acid.wav"
+    },
+    {
+        "name": "Crash, Debris, Metal and Glass",
+        "path": "D:\\GIT\\BLOOM\\BLOOM\\data\\sounds\\Crash, Debris, Metal and Glass.wav"
+    },
+    {
+        "name": "Human Voice Dying",
+        "path": "D:\\GIT\\BLOOM\\BLOOM\\data\\sounds\\Human Voice Dying.wav"
+    }
+]

@@ -52,7 +52,7 @@ def parse_stories(file_path, output_path):
     print(f"Stories successfully converted to JSON and saved to {output_path}")
 
 
-def generate_batches_with_folders(file_path, folder_path, batch_size=10):
+def generate_batches_with_folders(file_path, folder_path, batch_size=7):
     """
     Generate batches of stories and save them into structured folders.
     :param file_path: Path to the JSON file containing stories.
