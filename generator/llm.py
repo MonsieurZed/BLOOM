@@ -20,12 +20,10 @@ class PromptLoader:
         if len(PromptLoader._data):
             return
 
-        for item in Path("prompt").iterdir():
-            if item.is_dir():
-                for file in Path(item).iterdir():
-                    if file.is_file():
-                        with open(file, "r", encoding="utf-8") as item:
-                            PromptLoader._data[file.stem] = item.read()
+        for file in Path("prompt").iterdir():
+            if file.is_file():
+                with open(file, "r", encoding="utf-8") as item:
+                    PromptLoader._data[file.stem] = item.read()
 
     @staticmethod
     def get(key: Bloom.Prompt.System):

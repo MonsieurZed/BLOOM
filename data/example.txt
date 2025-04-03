@@ -1,0 +1,12 @@
+Here add :
+
+- intro.png
+- outro.png
+- outro_sound.wav
+- music.mp3
+- sounds/ 
+
+
+Everythin can be change in tools/bloom.py
+
+Temporary, Will be change in the future

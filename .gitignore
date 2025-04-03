@@ -2,7 +2,7 @@
 *.jpg
 *.mp3
 *.mp4
-
+test*
 
 _old/*
 _gen/*
@@ -15,6 +15,7 @@ _generative
 binary/ffmpeg
 binary/ImageMagick
 data/*
+!/data/example.txt
 
 key.yml
 
