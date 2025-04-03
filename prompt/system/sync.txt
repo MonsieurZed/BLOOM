@@ -4,19 +4,19 @@ Guidelines
 
 1. Input:
    - A storyboard list containing scenes with unique numbers and descriptions.
-   - An SRT file containing subtitles with timestamps and textual content.
+   - An ART file containing subtitles with timestamps and textual content.
 
 2. Output:
    - Your response must be strictly in JSON format.
    - Do not include any explanations, comments, or text outside the JSON.
    - The JSON output must include the following fields for each scene:
      - scene: The scene number from the storyboard.
-     - start_time: The start timestamp from the SRT file in HH:MM:SS format.
+     - start_time: The start timestamp from the ART file in HH:MM:SS format.
      - end_time: The end timestamp from the SRT file in HH:MM:SS format.
 
 3. Rules to Follow:
-   - Scene 0 Requirement: Always include a scene 0 covering the first five seconds.
-   - Complete Duration: The sync must cover the entire duration of the subtitles. For example, if the SRT ends at 00:00:47, the final scene’s end time must be 00:00:47.
+   - Scene 0 Requirement: Always include a scene 0 that at the beginning of the first sentence minus 300 ms
+   - Complete Duration: The sync must cover the entire duration of the subtitles. For example, if the ART ends at 00:00:47, the final scene’s end time must be 00:00:47.
    - Scene Count: The number of scenes (excluding scene 0) must exactly match the number of scenes in the storyboard. Do not add any scenes that are not provided.
    - Reordering Based on Keywords:
      - Adjust the order of the scenes if necessary so that each scene appears at the point in the subtitles where a key term or phrase from its description is mentioned.
@@ -25,41 +25,148 @@ Guidelines
      - Distribute the available duration among the scenes as evenly as possible while observing the following constraints.
      - Each scene (excluding scene 0) must last at least 4 seconds and no more than 9 seconds.
      - Adjust the start and end times to balance scene durations as evenly as possible.
+     - Try to now show the scene too early.
    - Continuity: Each scene’s start time must equal the previous scene’s end time. For example, if one scene ends at 00:00:05, the next must start at 00:00:05.
    - Exclusion: If a scene cannot be matched to a valid subtitle segment based on its keywords, exclude that scene from the JSON output.
 
 4. Formatting Rules:
-   - Ensure the timestamps in the JSON are in chronological order based on the SRT.
+   - Ensure the timestamps in the JSON are in chronological order based on the ART.
    - Always respond with valid JSON syntax without any additional text.
 
 5. Example Input:
 
-   Storyboard List:
-   {
-     "scene": [
-       {
-         "number": "1",
-         "description": "A towering figure, 'The Giant', strides menacingly toward a Phnom Penh drug dealer."
-       },
-       {
-         "number": "2",
-         "description": "A gleaming knife glints in the light as it is raised above the table."
-       }
-     ]
-   }
-
-   SRT File:
-   1
-   00:00:01,000 --> 00:00:05,000
-   Welcome to our presentation.
-
-   2
-   00:00:05,000 --> 00:00:10,000
-   Suddenly, a knife appears on the screen.
-
-   3
-   00:00:10,000 --> 00:00:15,000
-   The narrative continues with dramatic tension.
+ {
+    "storyboard": {
+        "scene": [
+            {
+                "number": "1",
+                "description": "Car on roadside, hood up, man inspecting underneath, desolate New Zealand backdrop."
+            },
+            {
+                "number": "2",
+                "description": "Close-up of a car jack lifting the undercarriage, cramped space visible."
+            },
+            {
+                "number": "3",
+                "description": "Man placing a car battery beneath the jack for added height."
+            },
+            {
+                "number": "4",
+                "description": "Buckled car battery under pressure, jack collapsing, tire close to the ground."
+            },
+            {
+                "number": "5",
+                "description": "Man trapped under car, strained expression, battery acid visible nearby."
+            },
+            {
+                "number": "6",
+                "description": "Wide shot of a food processing plant, focus on safety sign."
+            },
+            {
+                "number": "7",
+                "description": "Man pinned under a different car years ago, leg fractured, grimacing in pain."
+            }
+        ]
+    },
+    "subtitle": {
+        "asr": [
+            {
+                "text": "Darwin Award, April 9, 2003, New Zealand.",
+                "start": 0.0,
+                "end": 3.14,
+                "words": [
+                    {
+                        "word": "Darwin",
+                        "start": 0.0,
+                        "end": 0.38
+                    },
+                    {
+                        "word": "Award,",
+                        "start": 0.38,
+                        "end": 0.74
+                    },
+                    {
+                        "word": "April",
+                        "start": 1.11,
+                        "end": 1.26
+                    },
+                    {
+                        "word": "9,",
+                        "start": 1.26,
+                        "end": 1.56
+                    },
+                    {
+                        "word": "2003,",
+                        "start": 1.64,
+                        "end": 2.38
+                    },
+                    {
+                        "word": "New",
+                        "start": 2.76,
+                        "end": 2.82
+                    },
+                    {
+                        "word": "Zealand.",
+                        "start": 2.82,
+                        "end": 3.14
+                    }
+                ]
+            },
+            {
+                "text": "Phil's car broke down, requiring repairs to its undercarriage.",
+                "start": 3.8,
+                "end": 6.98,
+                "words": [
+                    {
+                        "word": "Phil's",
+                        "start": 3.8,
+                        "end": 4.28
+                    },
+                    {
+                        "word": "car",
+                        "start": 4.28,
+                        "end": 4.5
+                    },
+                    {
+                        "word": "broke",
+                        "start": 4.5,
+                        "end": 4.7
+                    },
+                    {
+                        "word": "down,",
+                        "start": 4.7,
+                        "end": 4.99
+                    },
+                    {
+                        "word": "requiring",
+                        "start": 5.24,
+                        "end": 5.56
+                    },
+                    {
+                        "word": "repairs",
+                        "start": 5.56,
+                        "end": 5.98
+                    },
+                    {
+                        "word": "to",
+                        "start": 5.98,
+                        "end": 6.2
+                    },
+                    {
+                        "word": "its",
+                        "start": 6.2,
+                        "end": 6.32
+                    },
+                    {
+                        "word": "undercarriage.",
+                        "start": 6.32,
+                        "end": 6.98
+                    }
+                ]
+              , ...
+            }]
+    }
+ }
 
 6. Output Format:
 
@@ -67,18 +174,18 @@ Guidelines
      "sync": [
        {
          "scene": "0",
-         "start_time": "00:00:00",
-         "end_time": "00:00:05"
+          "start": 0.0,
+          "end": 3.98,
        },
        {
          "scene": "1",
-         "start_time": "00:00:05",
-         "end_time": "00:00:09"
+          "start": 3.98,
+          "end": 7.51
        },
        {
          "scene": "2",
-         "start_time": "00:00:09",
-         "end_time": "00:00:15"
+          "start": 7.51,
+          "end": 15.87,
        }
      ]
    }

@@ -1,16 +1,15 @@
-import json
-import time
+import json, os, re, time, yaml
+from io import BytesIO
+from PIL import Image
+from enum import Enum
 from openai import OpenAI
 from google import genai
-from google.genai import types
-import yaml
 from pathlib import Path
-from script.basic import Utility
-from PIL import Image
-from io import BytesIO
 from datetime import datetime
+from google.genai import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from script.bloom import Bloom
+from tools.bloom import Bloom
+from tools.utility import Utility
 
 
 class PromptLoader:
@@ -37,89 +36,106 @@ class PromptLoader:
             return None
 
 
-class LLMGen:
-    _client: object
-    _model: str
-    _log: bool
-    _model: Bloom.Model
-    _output_folder: str
+class AIGen:
 
-    def __init__(self, model: Bloom.Model, output_folder, log=False):
+    class LLMModel(Enum):
+        OpenAI_o4_Mini = "gpt-4o-mini"
+        Perplexity_Sonar = "sonar"
+        Gemini_2Flash = "gemini-2.0-flash"
+
+    class ImageModel(Enum):
+        Gemini_Imagen = "imagen-3.0-generate-002"
+
+    _client: object
+    _log: bool
+    _llm_model: LLMModel
+    _image_model: ImageModel
+
+    def __init__(
+        self,
+        llm_model: LLMModel = LLMModel.Gemini_2Flash,
+        image_model: ImageModel = ImageModel.Gemini_Imagen,
+    ):
         with open("conf/key.yml", "r") as file:
             self.key = yaml.safe_load(file)
-        self._model = model
-        self._output_folder = output_folder
-        Utility.make_folder(self._output_folder)
 
-        if model is Bloom.Model.OpenAI_o4_Mini:
+        if llm_model is AIGen.LLMModel.OpenAI_o4_Mini:
             self._client = OpenAI(
                 api_key=self.key["openai"]["api_key"],
             )
 
-        if model is Bloom.Model.Perplexity_Sonar:
+        if llm_model is AIGen.LLMModel.Perplexity_Sonar:
             self._client = OpenAI(
                 api_key=self.key["perplexity"]["api_key"],
                 base_url="https://api.perplexity.ai",
             )
 
-        if model is Bloom.Model.Gemini_2Flash:
+        if llm_model is AIGen.LLMModel.Gemini_2Flash:
             self._client = genai.Client(api_key=self.key["gemini"]["api_key"])
 
-        self._model = model
-        print(f"Model is : {self._model}")
-        self._log = log
+        self._llm_model = llm_model
+        self._image_model = image_model
+        print(f"LLM Model is : {self._llm_model}")
 
-    def ask(
+    def ask_json(
         self,
-        prompt: str,
-        user: Bloom.Prompt.User = Bloom.Prompt.User.Empty,
-        dev: Bloom.Prompt.Developper = Bloom.Prompt.Developper.Empty,
+        prompt: json,
         sys: Bloom.Prompt.System = Bloom.Prompt.System.Empty,
+        sys_custom: str = None,
         output_path: str = None,
-    ):
+    ) -> json:
+        if output_path is None:
+            print("Output path must be set")
 
-        print(f"Asking {self._model.value} for {sys.name} ...", end="")
+        print(f"Asking {self._llm_model.name} for {sys.name} ...", end="")
 
         timer = time.time()
-        message: str = ""
-        if dev is not Bloom.Prompt.Developper.Empty:
-            message += f"\n{Bloom.Prompt.get(dev)}"
-        if user is not Bloom.Prompt.User.Empty:
-            message += f"\n{Bloom.Prompt.get(user)}"
+        system = PromptLoader.get(sys)
+        if sys_custom:
+            system += sys_custom
 
-        message += f"\n{prompt}"
-
-        Utility.save_to_file(Bloom.get_folder_path(), sys.value + "_prompt", message)
+        Utility.save_to_file_json(output_path, sys.value + "_prompt", prompt)
 
         response = self._client.models.generate_content(
-            model=Bloom.Model.Gemini_2Flash.value,
+            model=self._llm_model.value,
             config=types.GenerateContentConfig(
-                system_instruction=PromptLoader.get(sys),
+                system_instruction=system,
             ),
-            contents=message,
+            contents=json.dumps(prompt),
         )
 
-        Utility.save_to_file_json(
-            Bloom.get_folder_path(), sys.value + "_result", response.text
-        )
+        match = re.search(r"```json\n(.*?)\n```", response.text, re.DOTALL)
+        if match:
+            json_str = match.group(1)
+            try:
+                return_val = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                print(f"JSON decoding error: {e}")
+        else:
+            print("No JSON found.")
+
+        Utility.save_to_file_json(output_path, sys.value + "_result", return_val)
 
         print(f"{round(time.time() - timer, 2) }sec")
-        return response.text
+        return return_val
 
-    def ask_image(self, name=None, select=False, quantity=1):
+    def ask_image(
+        self,
+        prompts: json,
+        output_folder: str,
+        name=None,
+        select=False,
+        quantity=1,
+    ):
         print(f"Starting Image generation ...")
         timer = time.time()
-        with open(
-            Bloom.get_prompt_file_path(Bloom.Prompt.System.SDXL), "r", encoding="utf-8"
-        ) as file:
-            json_obj = json.load(file)
 
         def process_prompt(prompt, prompt_index=0):
             """
             Process a single prompt: generate images and save them.
             """
             if Utility.check_file_exists(
-                Utility.get_scene(Bloom.get_common_folder(), prompt["scene"])
+                Utility.get_scene(output_folder, prompt["scene"])
             ):
                 return
 
@@ -131,7 +147,7 @@ class LLMGen:
                     subtimer_start = time.time()
 
                     response = self._client.models.generate_images(
-                        model=Bloom.Model.Gemini_Imagen.value,
+                        model=self._image_model.value,
                         prompt=prompt["prompt"][prompt_index],
                         config=types.GenerateImagesConfig(
                             number_of_images=1, aspect_ratio="9:16"
@@ -162,8 +178,7 @@ class LLMGen:
         # Use ThreadPoolExecutor to process prompts in parallel
         with ThreadPoolExecutor() as executor:
             futures = [
-                executor.submit(process_prompt, prompt)
-                for prompt in json_obj["prompts"]
+                executor.submit(process_prompt, prompt) for prompt in prompts["prompts"]
             ]
             for future in as_completed(futures):
                 future.result()  # Wait for each thread to complete
@@ -171,22 +186,21 @@ class LLMGen:
         print(f"Images generated  in {round(time.time() - timer, 2)} seconds.")
 
         if select:
-            Utility.make_folder(f"{self._output_folder}/trash")
+            Utility.make_folder(f"{output_folder}/trash")
             input("Remove unwanted pictures and press Enter to continue...")
-            full = True
-            scene_number = json_obj["prompts"][-1]["scene"]
-            for index in range(1, int(scene_number)):
-                file = Utility.get_scene(self._output_folder, index)
-                if file is None:
-                    full = False
-                    break
+            scene_number = prompts[-1]["scene"]
+            png_files = [
+                f
+                for f in os.listdir(output_folder)
+                if f.endswith(".png") and os.path.isfile(os.path.join(output_folder, f))
+            ]
 
-            if full is False:
+            if len(png_files) != int(scene_number):
                 self.ask_image(name, select, quantity)
 
     def quick_image(self, prompt):
         response = self._client.models.generate_images(
-            model=Bloom.Model.Gemini_Imagen.value,
+            model=AIGen.Model.Gemini_Imagen.value,
             prompt=prompt,
             config=types.GenerateImagesConfig(number_of_images=1, aspect_ratio="9:16"),
         )
@@ -202,25 +216,18 @@ class LLMGen:
     def quick_ask(
         self,
         prompt: str,
-        user: Bloom.Prompt.User = Bloom.Prompt.User.Empty,
-        dev: Bloom.Prompt.Developper = Bloom.Prompt.Developper.Empty,
         sys: Bloom.Prompt.System = Bloom.Prompt.System.Empty,
         output_path: str = None,
     ):
 
-        print(f"Asking {self._model.value} for {sys.name} ...", end="")
+        print(f"Asking {self._llm_model.value} for {sys.name} ...", end="")
 
         timer = time.time()
         message: str = ""
-        if dev is not Bloom.Prompt.Developper.Empty:
-            message += f"\n{Bloom.Prompt.get(dev)}"
-        if user is not Bloom.Prompt.User.Empty:
-            message += f"\n{Bloom.Prompt.get(user)}"
-
         message += f"\n{prompt}"
 
         response = self._client.models.generate_content(
-            model=Bloom.Model.Gemini_2Flash.value,
+            model=AIGen.Model.Gemini_2Flash.value,
             config=types.GenerateContentConfig(
                 system_instruction=PromptLoader.get(sys),
             ),
@@ -233,13 +240,13 @@ class LLMGen:
         return response.text
 
     # message = []
-    #     if self._model is Bloom.Model.OpenAI_o4_Mini:
+    #     if self._model is LLMGen.Model.OpenAI_o4_Mini:
     #         if sys is not Bloom.Prompt.System.Empty:
     #             message.append({"role": "system", "content": PromptLoader.get(sys)})
     #         if dev is not Bloom.Prompt.Developper.Empty:
     #             message.append({"role": "developer", "content": PromptLoader.get(dev)})
 
-    #     if self._model is Bloom.Model.Perplexity_Sonar:
+    #     if self._model is LLMGen.Model.Perplexity_Sonar:
     #         if sys or dev:
     #             message.append(
     #                 {

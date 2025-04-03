@@ -1,5 +1,10 @@
-import json
-import time
+import numpy, math, json, time, textwrap
+from PIL import Image
+from PIL.Image import Resampling
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from moviepy.audio.fx.all import audio_fadein, audio_fadeout
+from moviepy.audio.AudioClip import concatenate_audioclips
 from moviepy.editor import (
     AudioFileClip,
     CompositeVideoClip,
@@ -10,19 +15,9 @@ from moviepy.editor import (
     VideoClip,
     CompositeAudioClip,
 )
-import textwrap
-from moviepy.audio.fx.all import audio_fadein, audio_fadeout
 import whisper_timestamped as whisper
-from collections.abc import Callable
-from PIL import Image
-from PIL.Image import Resampling
-import math
-import numpy
-from script.basic import Utility
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from script.bloom import Bloom
-
-from moviepy.audio.AudioClip import concatenate_audioclips
+from tools.bloom import Bloom
+from tools.utility import Utility
 
 
 class VideoGen:
@@ -116,8 +111,8 @@ class VideoGen:
         results = whisper.transcribe(model, audio, language="en")
         return results["segments"]
 
-    def _create_sound_design(
-        self, json_file_path: str, output_audio_path: str, fade_duration: float = 4.0
+    def create_sound_design(
+        self, sound_json: str, output_audio_path: str, fade_duration: float = 4.0
     ):
         """
         Creates a sound design by merging audio clips from a JSON file into one audio clip
@@ -129,26 +124,27 @@ class VideoGen:
             output_audio_path (str): Path to save the merged audio file.
             fade_duration (float): Duration of the fade-in and fade-out effects (in seconds).
         """
-        with open(json_file_path, "r", encoding="utf-8") as json_file:
-            data = json.load(json_file)
-
         # List to store all audio clips
         audio_clips = []
 
         # Iterate over the sounds in the JSON file
-        for sound in data["sound"]:
+        for sound in sound_json["sound"]:
             sound_path = sound["path"]
             timestamp = float(sound["time"])
 
             try:
                 # Load the sound clip
-                sound_clip = AudioFileClip(sound_path)
+                sound_clip = AudioFileClip(
+                    Bloom.get_data_file_path(Bloom.Data.Sound_Folder)
+                    + "\\"
+                    + sound_path
+                )
 
                 # Trim the clip to a maximum of 4 seconds
                 sound_clip = sound_clip.subclip(0, min(6, sound_clip.duration))
 
                 # Apply fade-in and fade-out effects
-                sound_clip = sound_clip.audio_fadein(0.5).audio_fadeout(2).volumex(0.80)
+                sound_clip = sound_clip.audio_fadein(0.5).audio_fadeout(2).volumex(0.1)
 
                 # Set the start time for the sound clip
                 sound_clip = sound_clip.set_start(timestamp)
@@ -166,86 +162,83 @@ class VideoGen:
 
         print(f"Merged audio saved to: {output_audio_path}")
 
-    def create_background_video(self):
+    def create_background_video(
+        self,
+        sync_data: json = None,
+        intro_img_path=None,
+        outro_img_path=None,
+        outro_audio_path=None,
+        image_folder=None,
+        audio_path=None,
+        music_path=None,
+        sound_path=None,
+        partial_video_path=None,
+    ):
+
         timer = time.time()
-        print(f"Generating {Bloom.OutputFile.Part_mp4} ... ", end="")
-
-        image_folder = Bloom.get_common_folder()
-        sync_file = Bloom.get_prompt_file_path(Bloom.Prompt.System.ImageSync)
-        audio_file = Bloom.get_output_file_path(Bloom.OutputFile.Audio_mp3)
-        bloom_file = Bloom.get_data_file_path(Bloom.OutputFile.Bloom_mp3)
-        music_file = Bloom.get_data_file_path(Bloom.Data.Musique)
-        part_video_file = Bloom.get_output_file_path(Bloom.OutputFile.Part_mp4)
-        sound_file = Bloom.get_output_file_path(Bloom.OutputFile.Sound_mp3)
-
-        with open(sync_file, "r") as f:
-            sync_data = json.load(f)["sync"]
+        print(f"Generating {partial_video_path} ... ", end="")
 
         clips = []
 
-        for sync in sync_data:
+        for sync in sync_data["sync"]:
             scene = sync["scene"]
             start_time = sync["start_time"]
             end_time = sync["end_time"]
 
             # Calculate duration
-            start_seconds = sum(
-                int(x) * 60**i for i, x in enumerate(reversed(start_time.split(":")))
-            )
-            end_seconds = sum(
-                int(x) * 60**i for i, x in enumerate(reversed(end_time.split(":")))
-            )
-            duration = end_seconds - start_seconds
-
+            # start_seconds = sum(
+            #     int(x) * 60**i for i, x in enumerate(reversed(start_time.split(":")))
+            # )
+            # end_seconds = sum(
+            #     int(x) * 60**i for i, x in enumerate(reversed(end_time.split(":")))
+            # )
+            # duration = end_seconds - start_seconds
+            duration = end_time - start_time
             # Load the image for the scene
 
             image_path = (
-                Bloom.get_data_file_path(Bloom.Data.Intro)
-                if scene == "0"
-                else Utility.get_scene(image_folder, scene)
+                intro_img_path if scene == 0 else Utility.get_scene(image_folder, scene)
             )
 
             if not image_path:
                 print(f"Image for scene {scene} not found: {image_path}")
                 continue
 
-            # Create an ImageClip and apply zoom effect
             clip = ImageClip(image_path, duration=duration)
-            if scene != "0":
+            # Create an ImageClip and apply zoom effect
+            if scene != 0:
                 clip = self._zoom_in_effect(clip, 0.04)
+
             clips.append(clip)
 
         # Add outro clip
-        image_path = Bloom.get_data_file_path(Bloom.Data.Outro)
-        outro_clip = ImageClip(image_path, duration=3)
+        outro_clip = ImageClip(outro_img_path, duration=3)
         clips.append(outro_clip)
 
         # Concatenate all clips
         if clips:
 
-            self._create_sound_design(
-                Bloom.get_prompt_file_path(Bloom.Prompt.System.SoundDesigner),
-                sound_file,
-            )
-
             final_video = concatenate_videoclips(clips, method="compose")
-            story_clip = AudioFileClip(audio_file)
-            bloom_file = AudioFileClip(bloom_file)
-            music_clip = AudioFileClip(music_file).volumex(0.05)
-            sound_clip = AudioFileClip(sound_file)
-
+            story_clip = AudioFileClip(audio_path)
+            outro_audio_path = AudioFileClip(outro_audio_path)
+            music_clip = AudioFileClip(music_path)
+            sound_clip = AudioFileClip(sound_path)
             # Add fade-in and fade-out effects to the music
+
+            music_clip = music_clip.subclip(0, story_clip.duration)
             music_clip = audio_fadein(music_clip, duration=1)  # 3-second fade-in
             music_clip = audio_fadeout(music_clip, duration=3)  # 3-second fade-out
-
+            music_clip = music_clip.volumex(0.15)
             # Combine the audio files
-            combined_audio = concatenate_audioclips([story_clip, bloom_file])
+
+            bloom_start_time = max(0, story_clip.duration - 2)
+
+            outro_audio_path = outro_audio_path.set_start(bloom_start_time)
+            outro_audio_path = audio_fadein(outro_audio_path, duration=1)
+            outro_audio_path = audio_fadeout(outro_audio_path, duration=1)
+
             final_audio = CompositeAudioClip(
-                [
-                    combined_audio,
-                    sound_clip,
-                    music_clip,
-                ]
+                [story_clip, sound_clip, music_clip, outro_audio_path]
             )
 
             # Set the combined audio to the final video
@@ -253,30 +246,29 @@ class VideoGen:
 
             # Write the final video to a file
             final_video.write_videofile(
-                part_video_file, fps=self._fps, codec=self._codec
+                partial_video_path, fps=self._fps, codec=self._codec
             )
 
-            print(f"Video created successfully: {part_video_file}")
+            print(f"Video created successfully: {partial_video_path}")
         else:
             print("No clips were created. Please check your sync file and images.")
 
         print(f"{round(time.time() - timer, 2)} seconds.")
 
-    def add_sub_to_video(self):
+    def add_sub_to_video(
+        self,
+        part_video_file,
+        audio_file,
+        subtitle_file,
+        final_path,
+    ):
         timer = time.time()
         print("Adding subtitles to video ... ", end="")
 
-        part_video_file = Bloom.get_output_file_path(Bloom.OutputFile.Part_mp4)
-        final_path = Bloom.get_root_file_path(
-            Bloom.OutputFile.Final_mp4, Bloom._current_language
-        )
-
-        audio_file = Bloom.get_output_file_path(Bloom.OutputFile.Audio_mp3)
         audio = AudioFileClip(audio_file)
         original_clip = VideoFileClip(part_video_file)
 
-        sub_file = Bloom.get_prompt_file_path(Bloom.Prompt.System.Subschecker)
-        with open(sub_file, "r", encoding="utf-8") as file:
+        with open(subtitle_file, "r", encoding="utf-8") as file:
             json_text = file.read()  # Read the file as a string
 
         # Generate text clips
@@ -286,7 +278,7 @@ class VideoGen:
 
         # Combine the original video with the text clips
         final_clip = CompositeVideoClip([original_clip] + text_clip_list).set_duration(
-            audio.duration + 5
+            audio.duration + 3
         )
 
         # Write the final video to a file

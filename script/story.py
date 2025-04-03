@@ -1,6 +1,7 @@
 import json
 import random
-from basic import Utility
+from tools.bloom import Bloom
+from tools.utility import Utility
 
 
 def parse_stories(file_path, output_path):

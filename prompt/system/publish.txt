@@ -16,16 +16,12 @@ Short Description:Write a compelling and concise description that captures the c
 
 Hashtag Selection:Identify and include a set of relevant, trending, and up-to-date hashtags to boost the video's reach and engagement.
 
-Output Format:Your output must strictly adhere to the following format, without any additional text or commentary:
+Output Format:Your output must strictly adhere to the following json format, without any additional text or commentary:
+{
+    "title": "<title>",
+    "description": "<Description>",
+    "hashtags": "<Hashtags>"
+}
 
-Title:  
-<Title>
-
-Description:  
-<Description>
-
-Hashtags:  
-<Hashtags>
 
 Ensure that each component (title, description, hashtags) accurately reflects the input story while appealing to a young, dynamic audience. Do not output anything other than the specified format.
-

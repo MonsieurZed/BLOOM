@@ -1,12 +1,10 @@
-import time
+import os, json, time, whisper
 from dotenv import load_dotenv
-from elevenlabs.client import ElevenLabs
-from script.basic import Key, Utility
-import whisper
 from elevenlabs import VoiceSettings
 from whisper.utils import get_writer
-from script.bloom import Bloom
-import json
+from elevenlabs.client import ElevenLabs
+from tools.bloom import Bloom
+from tools.utility import Utility, Key
 
 
 class TTSGen:
@@ -15,11 +13,9 @@ class TTSGen:
 
     def __init__(self, output):
         self._client = ElevenLabs(api_key=Key.get("elevenlabs"))
-        self._output = output
 
-    def generate_mp3(self, text):
+    def generate_mp3(self, text, output_audio_file):
         timer = time.time()
-        output_audio_file = Bloom.get_output_file_path(Bloom.OutputFile.Audio_mp3)
         print("Generating MP3 ...", end="")
 
         load_dotenv()
@@ -47,33 +43,30 @@ class TTSGen:
         print(f"{round(time.time() - timer, 2)} seconds.")
         return output_audio_file
 
-    def generate_subs(self, path_mp3):
+    def generate_subs(self, output_path, input_filename, output_filename) -> json:
         timer = time.time()
         print("Generating Subs ...", end="")
-        sgmtFilename = Bloom.get_output_file_path(Bloom.OutputFile.Audio_json)
 
         model = whisper.load_model("base")  # Change this to your desired model
 
         transcribe = model.transcribe(
-            audio=path_mp3,
+            audio=output_path + "\\" + input_filename.value,
             word_timestamps=True,
         )
-        segments = transcribe["segments"]
+        segments = Utility.segment_cleaner(transcribe["segments"])
 
-        cleaned_segment = json.dumps(Utility.segment_cleaner(segments))
-        with open(sgmtFilename, "w", encoding="utf-8") as file:
-            file.write(cleaned_segment)
+        Utility.save_to_file_json(output_path, output_filename.value, segments)
 
         print(f"{round(time.time() - timer, 2)} seconds.")
-        return cleaned_segment
+        return segments
 
-    def generate_srt(self, path_mp3):
+    def generate_srt(self, mp3_path):
         timer = time.time()
         print("Generating Subs ...", end="")
-
+        segment_path = os.path.splitext(mp3_path)[0] + ".json"
         model = whisper.load_model("base")
         result = model.transcribe(
-            audio=path_mp3, language="en", word_timestamps=True, task="transcribe"
+            audio=mp3_path, language="en", word_timestamps=True, task="transcribe"
         )
 
         word_options = {
@@ -82,10 +75,10 @@ class TTSGen:
             "max_line_width": 12,
         }
 
-        vtt_writer = get_writer(output_format="srt", output_dir=self._output)
-        vtt_writer(result, path_mp3, word_options)
+        vtt_writer = get_writer(output_format="srt", output_dir=segment_path)
+        vtt_writer(result, mp3_path, word_options)
 
         print(f"{round(time.time() - timer, 2)} seconds.")
 
-        with open(f"{self._output}\\audio.srt", "r", encoding="utf-8") as file:
+        with open(f"{segment_path}\\audio.srt", "r", encoding="utf-8") as file:
             return file.read()

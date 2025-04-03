@@ -1,7 +1,6 @@
 import math
 import os
 import random
-import re
 import string
 from moviepy.editor import AudioFileClip
 import yaml
@@ -55,13 +54,13 @@ class Utility:
             print(f"Error saving text: {e}")
 
     @staticmethod
-    def save_to_file_json(folder, filename, text):
+    def save_to_file_json(folder, filename, data):
         try:
             Utility.save_to_file(
-                folder, filename, re.search(r"\{[\s\S]*\}", text).group()
+                folder, filename, json.dumps(data, ensure_ascii=False, indent=4)
             )
         except Exception as e:
-            Utility.save_to_file(folder, filename, text)
+            Utility.save_to_file(folder, filename, data)
 
     @staticmethod
     def get_duration(path_mp3):

@@ -1,15 +1,14 @@
 import time
-
+import time
 from moviepy.editor import TextClip
-from script.basic import *
-from script.bloom import Bloom
-from script.llm import LLMGen, PromptLoader
-from _old.sdxl import SDXL
-from script.tts import TTSGen
-from script.video import VideoGen
+from tools.bloom import Bloom
+from tools.utility import Utility
+from pathlib import Path
+from generator import AIGen, VideoGen, TTSGen, PromptLoader
+
 
 img = False
-Llm = LLMGen(Bloom.Model.Gemini_2Flash, "_output", log=True)
+Llm = AIGen(Bloom.Model.Gemini_2Flash, "_output", log=True)
 
 if img:
     text = TextClip.list("font")
@@ -41,7 +40,7 @@ if img:
     image_mood = "Suspense"
     image_iteration = 2
 
-    jsontxt = Llm.ask(
+    jsontxt = Llm.ask_json(
         sys=PromptLoader.System.SDXL,
         prompt=f"Style:'{image_style}'\nMood : {image_mood}\nIteration quantity : {image_iteration}\nStoryboard : {storyboard}",
     )

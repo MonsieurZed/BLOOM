@@ -1,23 +1,23 @@
+import os, shutil, json
 from enum import Enum
-import json
-from pathlib import Path
-import shutil
-import os
-import json
-import shutil
 from pathlib import Path
 from moviepy.editor import AudioFileClip
-
-
-from script.basic import Utility
+from tools.utility import Utility
 
 
 class Bloom:
     _current_language = None
     _current_folder = None  # Static variable to hold the output folder in memory
     _data_folder = "data"
+    _sound_folder = "sounds"
     _common = "common"
     _base: json = None
+
+    class Languages(Enum):
+        Empty = None
+        English = "English"
+        French = "French"
+        Spanish = "Spanish"
 
     class SharedFile(Enum):
         Base_json: str = "base.json"
@@ -26,10 +26,16 @@ class Bloom:
         Empty = None
         Audio_mp3: str = "audio.mp3"
         Audio_json: str = "audio.json"
-        Bloom_mp3: str = "bloom.wav"
         Part_mp4: str = "part.mp4"
         Final_mp4: str = "final.mp4"
         Sound_mp3: str = "sound.mp3"
+
+    class Data(Enum):
+        Outro_audio: str = "BipBloom.mp3"
+        Intro_img = "intro.png"
+        Outro_img = "outro.png"
+        music = "suspense.mp3"
+        Sound_Folder = "sounds"
 
     class Prompt:
         class System(Enum):
@@ -37,40 +43,17 @@ class Bloom:
             Storyteller = "storyteller"
             SoundDesigner = "sounddesigner"
             Storyboard = "storyboard"
-            SDXL = "sdxl"
+            ImageGen = "imagen"
             ImageSync = "imagesync"
             Publish = "publish"
             Subschecker = "subschecker"
             Translate = "translate"
             Test = "test"
 
-        class Developper(Enum):
-            Empty = None
-
-        class User(Enum):
-            Empty = None
-
         class Suffix(Enum):
             Empty = None
             Result = "_result"
             Promt = "prompt"
-
-    class Model(Enum):
-        OpenAI_o4_Mini = "gpt-4o-mini"
-        Perplexity_Sonar = "sonar"
-        Gemini_2Flash = "gemini-2.0-flash"
-        Gemini_Imagen = "imagen-3.0-generate-002"
-
-    class Data(Enum):
-        Intro = "intro.png"
-        Outro = "outro.png"
-        Musique = "suspense.mp3"
-
-    class Languages(Enum):
-        Empty = None
-        English = "English"
-        French = "French"
-        Spanish = "Spanish"
 
     @staticmethod
     def set_video(folder: str, language: Languages = Languages.English) -> json:
@@ -117,6 +100,17 @@ class Bloom:
         return path
 
     @staticmethod
+    def get_sound_folder():
+        path = Bloom._data_folder + "\\" + Bloom._sound_folder
+        if path is None:
+            raise ValueError("Output folder has not been set.")
+        return path
+
+    @staticmethod
+    def get_sound_path(sound: str):
+        return Bloom.get_sound_folder() + "\\" + sound
+
+    @staticmethod
     def get_root_file_path(file: OutputFile, prefix: Languages = Languages.Empty):
         if not prefix:
             path = Bloom._current_folder + "\\" + file.value
@@ -139,3 +133,35 @@ class Bloom:
                 shutil.copy(file, destination)
                 print(f"Fichier copié : {file} -> {destination}")
                 return str(destination)
+
+    @staticmethod
+    def get_audio_list():
+        folder = Bloom._data_folder + "\\" + "sounds"
+        supported_extensions = [".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"]
+        audio_list = []
+
+        for root, _, files in os.walk(folder):
+            for file in files:
+                file_path = os.path.join(root, file)
+                file_extension = Path(file).suffix.lower()
+
+                if file_extension in supported_extensions:
+                    try:
+                        # Get audio duration
+                        with AudioFileClip(file_path) as audio:
+                            duration = round(audio.duration, 2)
+
+                        # Add audio details to the list with relative paths
+                        audio_list.append(
+                            {
+                                "name": Path(file).stem,
+                                "path": os.path.relpath(
+                                    file_path, folder
+                                ),  # Relative path
+                                "duration": duration,
+                            }
+                        )
+                    except Exception as e:
+                        print(f"Error processing file {file_path}: {e}")
+
+            return json.dumps(audio_list, indent=4, ensure_ascii=False)

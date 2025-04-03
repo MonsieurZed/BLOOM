@@ -2,12 +2,12 @@
 
     I. Scene Extraction and Selection:
     1. Extract Key Moments:
-      - Identify 3-5 pivotal scenes that visually define the story’s progression.
+      - User will provide the number of scene needed
       - Prioritize:
         • Character introductions
         • Location
         • Emotional 
-        • Crucial props
+        • Crucial prop
         • Unexpected twists
 
     II. Scene Description Guidelines:
