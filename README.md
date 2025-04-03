@@ -30,9 +30,9 @@ The **Bloom Project** is a Python-based tool designed to convert short stories i
 The project leverages cutting-edge technologies:
 
 - **Python** for scripting and automation.
-- **Foocus + Foocus API** for AI image generation.
+- **Gemini** for AI image generation.
 - **Eleven Labs** models for AI voiceovers.
-- **OpenIA and Google Gemini** models for AI prompting, storyboard.
+- **Google Gemini** models for AI prompting
 
 ---
 
