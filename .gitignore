@@ -1,8 +1,7 @@
-.txt
-.png 
-.jpg
-.mp3
-.mp4
+*.png 
+*.jpg
+*.mp3
+*.mp4
 
 
 _old/*
