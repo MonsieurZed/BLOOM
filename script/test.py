@@ -8,7 +8,7 @@ from generator import AIGen, VideoGen, TTSGen, PromptLoader
 
 
 img = False
-Llm = AIGen(Bloom.Model.Gemini_2Flash, "_output", log=True)
+Llm = AIGen(AIGen.LLMModel.Gemini_2Flash)
 
 if img:
     text = TextClip.list("font")
@@ -284,9 +284,14 @@ else:
         "story": "Phil, a safety officer at a food processing plant, found himself in a familiar predicament. His car needed repairs, but lifting it with a jack didn't provide enough space.Thinking quickly, he removed the car battery, placing it under the jack for extra height. As he worked more comfortably, a sickening crack echoed—the battery couldn't bear the weight.The jack collapsed, pinning Phil beneath the vehicle. The pressure on his chest was unbearable, stealing his breath. Trapped and helpless, he died in a pool of battery acid.Tragically, this wasn't Phil's first brush with such an accident. A decade earlier, he'd been pinned under a car, escaping with just a broken leg. Some, it seems, never learn, even from their own mistakes.",
     }
 
+    with open(r"D:\GIT\BLOOM\BLOOM\data\stories.json", "r", encoding="utf-8") as file:
+        jsonfile = file.read()
+
     jsontxt = Llm.quick_ask(
         sys=Bloom.Prompt.System.SoundDesigner,
-        prompt=f"{story} {subs}",
+        sys_custom=Bloom.get_audio_list(),
+        prompt="This one is bit differnt, here a list of stories, for each of them, give what sound would you use, and why. And the end give me a list missing sound that you would use, answer me in json:\n"
+        + jsonfile,
         output_path=r"D:\GIT\BLOOM\BLOOM",
     )
     print(jsontxt)

@@ -1,26 +1,20 @@
-import os, shutil, json
+import json
 from enum import Enum
 from pathlib import Path
-from moviepy.editor import AudioFileClip
-from tools.utility import Utility
+from shutil import copyfile
 
 
-class Bloom:
-    _current_language = None
-    _current_folder = None  # Static variable to hold the output folder in memory
-    _data_folder = "data"
-    _sound_folder = "sounds"
-    _common = "common"
-    _base: json = None
-
+class Dictionnary:
     class Languages(Enum):
         Empty = None
         English = "English"
         French = "French"
         Spanish = "Spanish"
 
-    class SharedFile(Enum):
-        Base_json: str = "base.json"
+    class Style(Enum):
+        Empy = None
+        Photorealistic = "photorealistic"
+        Anime = "anime"
 
     class OutputFile(Enum):
         Empty = None
@@ -37,131 +31,126 @@ class Bloom:
         music = "suspense.mp3"
         Sound_Folder = "sounds"
 
-    class Prompt:
-        class System(Enum):
-            Empty = None
-            Storyteller = "storyteller"
-            SoundDesigner = "sounddesigner"
-            Storyboard = "storyboard"
-            ImageGen = "imagen"
-            ImageSync = "imagesync"
-            Publish = "publish"
-            Subschecker = "subschecker"
-            Translate = "translate"
-            Test = "test"
+    class Prompt(Enum):
+        Empty = None
+        Storyteller = "storyteller"
+        SoundDesigner = "sounddesigner"
+        Storyboard = "storyboard"
+        ImageGen = "imagen"
+        ImageSync = "imagesync"
+        Publish = "publish"
+        Subschecker = "subschecker"
+        Translate = "translate"
+        Test = "test"
 
-        class Suffix(Enum):
-            Empty = None
-            Result = "_result"
-            Promt = "prompt"
+    class Prompt_Suffix(Enum):
+        Empty = None
+        Result = "_result"
+        Promt = "_ask"
 
-    @staticmethod
-    def set_video(folder: str, language: Languages = Languages.English) -> json:
-        Bloom._current_folder = folder
-        Bloom._current_language = language
-        Utility.make_folder(folder + "\\" + language.value)
-        Utility.make_folder(folder + "\\" + Bloom._common)
-        Utility.make_folder(folder + "\\" + "trash")
-        with open(
-            Bloom._current_folder + "\\" + Bloom.SharedFile.Base_json.value,
-            "r",
-            encoding="utf-8",
-        ) as file:
-            Bloom._base = json.load(file)
-        print(f"working in {Bloom.get_folder_path()}")
-        return Bloom._base
 
-    @staticmethod
-    def get_folder_path() -> str:
-        path = Bloom._current_folder + "\\" + Bloom._current_language.value
-        if path is None:
-            raise ValueError("Output folder has not been set.")
-        return path
+class Bloom:
+    _base_path: Path
+    _data_path: Path
+    _id: int = -1
+    _dict: dict = {}
+    _language: Dictionnary.Languages = None
+    _style: Dictionnary.Style = None
+    date: str = "Unknown Date"
+    place: str = "Unknown Location"
+    story: str = None
 
-    @staticmethod
-    def get_output_file_path(file: OutputFile) -> str:
-        return Bloom.get_folder_path() + "\\" + file.value
-
-    @staticmethod
-    def get_prompt_file_path(
-        file: Prompt.System, suffix: Prompt.Suffix = Prompt.Suffix.Result
-    ) -> str:
-        return Bloom.get_folder_path() + "\\" + file.value + suffix.value
-
-    @staticmethod
-    def get_data_file_path(file: Data):
-        return Bloom._data_folder + "\\" + file.value
-
-    @staticmethod
-    def get_common_folder():
-        path = Bloom._current_folder + "\\" + Bloom._common
-        if path is None:
-            raise ValueError("Output folder has not been set.")
-        return path
-
-    @staticmethod
-    def get_sound_folder():
-        path = Bloom._data_folder + "\\" + Bloom._sound_folder
-        if path is None:
-            raise ValueError("Output folder has not been set.")
-        return path
-
-    @staticmethod
-    def get_sound_path(sound: str):
-        return Bloom.get_sound_folder() + "\\" + sound
-
-    @staticmethod
-    def get_root_file_path(file: OutputFile, prefix: Languages = Languages.Empty):
-        if not prefix:
-            path = Bloom._current_folder + "\\" + file.value
-        else:
-            path = Bloom._current_folder + "\\" + prefix.value + "_" + file.value
-        if path is None:
-            raise ValueError("Output folder has not been set.")
-        return path
-
-    @staticmethod
-    def copy_file_from(
-        filename,
-        from_language: Languages = Languages.English,
+    def __init__(
+        self,
+        base_path,
+        data_path,
+        language: Dictionnary.Languages = Dictionnary.Languages.Empty,
+        style: Dictionnary.Style = Dictionnary.Style.Empy,
     ):
-        from_folder = Path(Bloom._current_folder + "\\" + from_language.value)
-        to_folder = Path(Bloom._current_folder + "\\" + Bloom._current_language.value)
-        for file in from_folder.iterdir():
-            if file.is_file() and filename in file.name:
-                destination = to_folder / file.name
-                shutil.copy(file, destination)
-                print(f"Fichier copié : {file} -> {destination}")
-                return str(destination)
+        self._base_path = Path(base_path)
+        self._data_path = Path(data_path)
 
-    @staticmethod
-    def get_audio_list():
-        folder = Bloom._data_folder + "\\" + "sounds"
-        supported_extensions = [".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"]
-        audio_list = []
+        # Create a backup of base_path if it doesn't exist
+        backup_path = self._base_path.with_suffix(".bak.json")
+        if not backup_path.exists():
+            copyfile(self._base_path, backup_path)
 
-        for root, _, files in os.walk(folder):
-            for file in files:
-                file_path = os.path.join(root, file)
-                file_extension = Path(file).suffix.lower()
+        with open(self._base_path, "r", encoding="utf-8") as file:
+            base = json.load(file)
 
-                if file_extension in supported_extensions:
-                    try:
-                        # Get audio duration
-                        with AudioFileClip(file_path) as audio:
-                            duration = round(audio.duration, 2)
+        if base.get("story") is None:
+            raise ValueError("Story not found in base.json")
 
-                        # Add audio details to the list with relative paths
-                        audio_list.append(
-                            {
-                                "name": Path(file).stem,
-                                "path": os.path.relpath(
-                                    file_path, folder
-                                ),  # Relative path
-                                "duration": duration,
-                            }
-                        )
-                    except Exception as e:
-                        print(f"Error processing file {file_path}: {e}")
+        self._id = base.get("id", -1)
+        self.place = base.get("place", "Unknown Location")
+        self.date = base.get("date", "Unknown Date")
+        self.story = base.get("story", None)
+        self._dict = base.get("dict", {})
+        self._language = language
+        self._style = style
 
-            return json.dumps(audio_list, indent=4, ensure_ascii=False)
+    def __update__(self):
+        with open(self._base_path, "r", encoding="utf-8") as file:
+            payload = json.load(file)
+        payload["dict"] = self._dict
+        with open(self._base_path, "w", encoding="utf-8") as file:
+            json.dump(payload, file, indent=4, ensure_ascii=False)
+
+    def add(self, key: Dictionnary.OutputFile | Dictionnary.Prompt, value):
+        if value is None:
+            raise ValueError("Value cannot be None")
+        self._dict[key.value] = value
+        self.__update__()
+
+    def get(self, key: Dictionnary.OutputFile | Dictionnary.Prompt):
+        if key.value in self._dict:
+            print(f"Key {key.value} found in the dictionary.")
+            return self._dict[key.value]
+        else:
+            print(f"Key {key.value} not found in the dictionary.")
+            None
+
+    def import_from(
+        self, key: Dictionnary.OutputFile | Dictionnary.Prompt, source: "Bloom"
+    ):
+        if key.value in source._dict:
+            self._dict[key.value] = source._dict[key.value]
+        else:
+            raise KeyError(f"Key {key.value} not found in the source dictionary.")
+
+    def get_root(self) -> Path:
+        return self._base_path.parent
+
+    def get_img_folder(self) -> Path:
+        img = self.get_root() / "img"
+        if not img.exists():
+            img.mkdir(parents=True, exist_ok=True)
+        return img
+
+    def get_language_folder(
+        self,
+        key: Dictionnary.OutputFile | Dictionnary.Prompt = None,
+    ) -> Path:
+        folder = self.get_root() / self._language.value
+        if not folder.exists():
+            folder.mkdir(parents=True, exist_ok=True)
+        if key is not None:
+            return folder / key.value
+        return folder
+
+    def get_log_folder(self) -> Path:
+        folder = self.get_language_folder() / "log"
+        if not folder.exists():
+            folder.mkdir(parents=True, exist_ok=True)
+        return folder
+
+    def get_data_folder(
+        self,
+        key: Dictionnary.Data = None,
+    ) -> Path:
+        if key is not None:
+            return self._data_path / key.value
+        folder = self._data_path
+        if key is not Dictionnary.OutputFile.Empty:
+            return folder / key.value
+        return folder

@@ -57,7 +57,7 @@
     - Output the final result as a valid JSON object with the following structure:
 
     {
-      "scene": [
+      "storyboard": [
         {
           "number": "1",
           "description": "<insert storyboard here>"

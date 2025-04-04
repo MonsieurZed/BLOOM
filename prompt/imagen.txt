@@ -31,14 +31,14 @@ Task Instructions:
 - Do not use any vocabulary related to mystical or magical themes.
 - Do not use "bloodied"; instead, write "dark red liquid stain".
 - Ensure sentences do not suggest floating objects, such as a floating knife.
-
+- Do not add text, diagolue, subtitle, etc
 Output:
 
 Your final output must be a JSON object that adheres exactly to the provided structure. Do not output any additional text besides the JSON object.
 
 Example of Expected JSON Output:
 {
-    "prompts": [
+    "imagen": [
         {
             "scene": "1",
             "prompt": [ "<prompt iteration 1>", "<prompt iteration 2>" ]

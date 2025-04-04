@@ -12,7 +12,7 @@ Expected Output:
 A JSON object containing the sound selections with their paths and corresponding timestamps in the story. The format should be as follows:
 
 {
-  "sound": [
+  "sounddesign": [
     {
       "path": "path/to/sound/file1.wav",
       "time": timestamp1,

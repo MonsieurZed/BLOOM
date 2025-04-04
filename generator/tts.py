@@ -1,9 +1,9 @@
 import os, json, time, whisper
 from dotenv import load_dotenv
+from pathlib import Path
 from elevenlabs import VoiceSettings
 from whisper.utils import get_writer
 from elevenlabs.client import ElevenLabs
-from tools.bloom import Bloom
 from tools.utility import Utility, Key
 
 
@@ -11,10 +11,11 @@ class TTSGen:
     _client: ElevenLabs
     _output: str
 
-    def __init__(self, output):
+    def __init__(self):
+        print("Loading TTS Gen ...")
         self._client = ElevenLabs(api_key=Key.get("elevenlabs"))
 
-    def generate_mp3(self, text, output_audio_file):
+    def generate_mp3(self, text, output_audio_file) -> Path:
         timer = time.time()
         print("Generating MP3 ...", end="")
 
@@ -26,36 +27,32 @@ class TTSGen:
             model_id="eleven_multilingual_v2",
             output_format="mp3_44100_128",
             voice_settings=VoiceSettings(
-                stability=0.5,
-                similarity_boost=0.8,
-                style=0.25,
-                use_speaker_boost=True,
-                speed=1.10,
+                speed=1.13,
             ),
         )
 
         with open(output_audio_file, "wb") as f:
-            for (
-                chunk
-            ) in audio:  # Iterate over the generator and write chunks to the file
+            for chunk in audio:
                 f.write(chunk)
 
         print(f"{round(time.time() - timer, 2)} seconds.")
         return output_audio_file
 
-    def generate_subs(self, output_path, input_filename, output_filename) -> json:
+    def generate_subs(self, audio_path, output_path) -> json:
         timer = time.time()
         print("Generating Subs ...", end="")
 
         model = whisper.load_model("base")  # Change this to your desired model
 
         transcribe = model.transcribe(
-            audio=output_path + "\\" + input_filename.value,
+            audio=str(audio_path),  # Convert WindowsPath to string
             word_timestamps=True,
         )
         segments = Utility.segment_cleaner(transcribe["segments"])
 
-        Utility.save_to_file_json(output_path, output_filename.value, segments)
+        Utility.save_to_file_json(
+            output_path, Path(audio_path).with_suffix(".json"), segments
+        )
 
         print(f"{round(time.time() - timer, 2)} seconds.")
         return segments

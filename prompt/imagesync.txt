@@ -38,7 +38,7 @@ Guidelines
 
    Storyboard List:
    {
-     "scene": [
+     "storyboard": [
        {
          "number": "1",
          "description": "A towering figure, 'The Giant', strides menacingly toward a Phnom Penh drug dealer."
@@ -144,7 +144,7 @@ Guidelines
 6. Output Format:
 
    {
-     "sync": [
+     "imagesync": [
        {
          "scene": 0,
          "start_time": 0,

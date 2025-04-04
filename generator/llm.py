@@ -8,8 +8,8 @@ from pathlib import Path
 from datetime import datetime
 from google.genai import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from tools.bloom import Bloom
 from tools.utility import Utility
+from tools.bloom import Dictionnary
 
 
 class PromptLoader:
@@ -26,7 +26,7 @@ class PromptLoader:
                     PromptLoader._data[file.stem] = item.read()
 
     @staticmethod
-    def get(key: Bloom.Prompt.System):
+    def get(key: Dictionnary.Prompt):
         PromptLoader._load()
         if key is not None and key.value in PromptLoader._data:
             return PromptLoader._data[key.value]
@@ -54,6 +54,7 @@ class AIGen:
         llm_model: LLMModel = LLMModel.Gemini_2Flash,
         image_model: ImageModel = ImageModel.Gemini_Imagen,
     ):
+        print("Loading AI Gen ...")
         with open("conf/key.yml", "r") as file:
             self.key = yaml.safe_load(file)
 
@@ -78,7 +79,7 @@ class AIGen:
     def ask_json(
         self,
         prompt: json,
-        sys: Bloom.Prompt.System = Bloom.Prompt.System.Empty,
+        sys: Dictionnary.Prompt = Dictionnary.Prompt.Empty,
         sys_custom: str = None,
         output_path: str = None,
     ) -> json:
@@ -159,7 +160,7 @@ class AIGen:
 
                     for generated_image in response.generated_images:
                         image = Image.open(BytesIO(generated_image.image.image_bytes))
-                        image.save(f"{Bloom.get_common_folder()}/{name}")
+                        image.save(f"{output_folder}/{name}")
 
                     print(
                         f"Generating {name} > {round(time.time() - subtimer_start, 2)} seconds."
@@ -175,9 +176,7 @@ class AIGen:
 
         # Use ThreadPoolExecutor to process prompts in parallel
         with ThreadPoolExecutor() as executor:
-            futures = [
-                executor.submit(process_prompt, prompt) for prompt in prompts["prompts"]
-            ]
+            futures = [executor.submit(process_prompt, prompt) for prompt in prompts]
             for future in as_completed(futures):
                 future.result()  # Wait for each thread to complete
 
@@ -185,20 +184,15 @@ class AIGen:
 
         if select:
             Utility.make_folder(f"{output_folder}/trash")
-            input("Remove unwanted pictures and press Enter to continue...")
-            scene_number = prompts[-1]["scene"]
-            png_files = [
-                f
-                for f in os.listdir(output_folder)
-                if f.endswith(".png") and os.path.isfile(os.path.join(output_folder, f))
-            ]
-
-            if len(png_files) != int(scene_number):
+            rt = input(
+                "Remove unwanted pictures and  press enter to continue...\n Enter 'c' to continue > "
+            )
+            if "c" not in rt:
                 self.ask_image(name, select, quantity)
 
     def quick_image(self, prompt):
         response = self._client.models.generate_images(
-            model=AIGen.Model.Gemini_Imagen.value,
+            model=Dictionnary.Model.Gemini_Imagen.value,
             prompt=prompt,
             config=types.GenerateImagesConfig(number_of_images=1, aspect_ratio="9:16"),
         )
@@ -214,7 +208,8 @@ class AIGen:
     def quick_ask(
         self,
         prompt: str,
-        sys: Bloom.Prompt.System = Bloom.Prompt.System.Empty,
+        sys: Dictionnary.Prompt = Dictionnary.Prompt.Empty,
+        sys_custom: str = None,
         output_path: str = None,
     ):
 
@@ -224,8 +219,12 @@ class AIGen:
         message: str = ""
         message += f"\n{prompt}"
 
+        system = PromptLoader.get(sys)
+        if sys_custom:
+            system += sys_custom
+
         response = self._client.models.generate_content(
-            model=AIGen.Model.Gemini_2Flash.value,
+            model=AIGen.LLMModel.Gemini_2Flash.value,
             config=types.GenerateContentConfig(
                 system_instruction=PromptLoader.get(sys),
             ),
@@ -239,9 +238,9 @@ class AIGen:
 
     # message = []
     #     if self._model is LLMGen.Model.OpenAI_o4_Mini:
-    #         if sys is not Bloom.Prompt.System.Empty:
+    #         if sys is not Dictionnary.Prompt.Empty:
     #             message.append({"role": "system", "content": PromptLoader.get(sys)})
-    #         if dev is not Bloom.Prompt.Developper.Empty:
+    #         if dev is not Dictionnary.Prompt.Developper.Empty:
     #             message.append({"role": "developer", "content": PromptLoader.get(dev)})
 
     #     if self._model is LLMGen.Model.Perplexity_Sonar:
@@ -279,5 +278,5 @@ class AIGen:
     #     prompt: str,
     #     user: Bloom.Prompt.User = Bloom.Prompt.User.Empty,
     #     dev: Bloom.Prompt.Developper = Bloom.Prompt.Developper.Empty,
-    #     sys: Bloom.Prompt.System = Bloom.Prompt.System.Empty,
+    #     sys: Bloom.Prompt = Bloom.Prompt.Empty,
     # ):

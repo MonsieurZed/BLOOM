@@ -122,3 +122,35 @@ class Utility:
             }
 
         return [filter_segment(segment) for segment in data]
+
+    @staticmethod
+    def get_audio_list(music_folder: Path):
+
+        supported_extensions = [".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"]
+        audio_list = []
+
+        for root, _, files in os.walk(music_folder):
+            for file in files:
+                file_path = os.path.join(root, file)
+                file_extension = Path(file).suffix.lower()
+
+                if file_extension in supported_extensions:
+                    try:
+                        # Get audio duration
+                        with AudioFileClip(file_path) as audio:
+                            duration = round(audio.duration, 2)
+
+                        # Add audio details to the list with relative paths
+                        audio_list.append(
+                            {
+                                "name": Path(file).stem,
+                                "path": os.path.relpath(
+                                    file_path, music_folder
+                                ),  # Relative path
+                                "duration": duration,
+                            }
+                        )
+                    except Exception as e:
+                        print(f"Error processing file {file_path}: {e}")
+
+            return json.dumps(audio_list, indent=4, ensure_ascii=False)
