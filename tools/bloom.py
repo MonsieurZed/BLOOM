@@ -67,7 +67,7 @@ class Bloom:
         language: Dictionnary.Languages = Dictionnary.Languages.Empty,
         style: Dictionnary.Style = Dictionnary.Style.Empy,
     ):
-        self._base_path = Path(base_path)
+        self._base_path = Path(base_path) / "base.json"
         self._data_path = Path(data_path)
 
         # Create a backup of base_path if it doesn't exist
